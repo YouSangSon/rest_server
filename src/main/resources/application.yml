@@ -1,0 +1,10 @@
+spring:
+  application:
+    name: rest
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+
+logging:
+  level:
+    org.springframework: INFO
+    yousang.rest: DEBUG 
