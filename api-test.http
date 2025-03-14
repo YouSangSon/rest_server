@@ -1,0 +1,75 @@
+### 환경 변수 설정
+@baseUrl = http://localhost:8080
+@apiPath = /api/v1
+
+### ===========================
+### 기본 컨트롤러 API (BaseController)
+### ===========================
+
+### Hello World 테스트
+GET {{baseUrl}}{{apiPath}}/hello-world
+Accept: application/json
+
+### ===========================
+### 로또 컨트롤러 API (LottoController)
+### ===========================
+
+### 로또 번호 조회
+GET {{baseUrl}}{{apiPath}}/lotto/numbers?firstDrwNo=1&lastDrwNo=10
+Accept: application/json
+
+### 단일 회차 로또 번호 조회
+GET {{baseUrl}}{{apiPath}}/lotto/single?drwNo=1000
+Accept: application/json
+
+### 로또 번호 저장
+PUT {{baseUrl}}{{apiPath}}/lotto/numbers
+Accept: application/json
+
+### 연금복권 번호 조회
+GET {{baseUrl}}{{apiPath}}/annuity-lotto/numbers?firstDrwNo=1&lastDrwNo=10
+Accept: application/json
+
+### 연금복권 번호 저장
+PUT {{baseUrl}}{{apiPath}}/annuity-lotto/numbers
+Accept: application/json
+
+### ===========================
+### 로깅 테스트 컨트롤러 API (LoggingTestController)
+### ===========================
+
+### 기본 로깅 테스트
+GET {{baseUrl}}/api/logging-test/basic
+Accept: application/json
+
+### 색상 로깅 테스트
+GET {{baseUrl}}/api/logging-test/colored
+Accept: application/json
+
+### 구조화된 로깅 테스트
+GET {{baseUrl}}/api/logging-test/structured
+Accept: application/json
+
+### 시각적 로깅 테스트
+GET {{baseUrl}}/api/logging-test/visual
+Accept: application/json
+
+### 성능 로깅 테스트 (5회 반복)
+GET {{baseUrl}}/api/logging-test/performance/5
+Accept: application/json
+
+### 예외 로깅 테스트 (런타임 예외)
+GET {{baseUrl}}/api/logging-test/exception/runtime
+Accept: application/json
+
+### 예외 로깅 테스트 (잘못된 인수 예외)
+GET {{baseUrl}}/api/logging-test/exception/illegal
+Accept: application/json
+
+### 예외 로깅 테스트 (널 포인터 예외)
+GET {{baseUrl}}/api/logging-test/exception/nullpointer
+Accept: application/json
+
+### 예외 로깅 테스트 (일반 예외)
+GET {{baseUrl}}/api/logging-test/exception/general
+Accept: application/json 

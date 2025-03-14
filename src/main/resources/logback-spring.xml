@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+    <!-- 기본 로그 패턴 -->
+    <property name="LOG_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} [%thread] %-5level %logger{36} - %msg%n" />
+    
+    <!-- 컬러 로그 패턴 (디버깅용) -->
+    <property name="CONSOLE_COLOR_PATTERN" value="%d{yyyy-MM-dd HH:mm:ss.SSS} %highlight(%-5level) [%blue(%t)] %yellow(%C{1}): %msg%n%throwable" />
+
+    <!-- 콘솔 로그 설정 (JSON 형식) -->
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+            <includeMdcKeyName>requestId</includeMdcKeyName>
+            <includeMdcKeyName>userId</includeMdcKeyName>
+            <includeMdcKeyName>clientIp</includeMdcKeyName>
+            <includeMdcKeyName>requestUri</includeMdcKeyName>
+            <includeMdcKeyName>executionTime</includeMdcKeyName>
+        </encoder>
+    </appender>
+
+    <!-- 콘솔 로그 설정 (텍스트 형식 - 개발용) -->
+    <appender name="CONSOLE_TEXT" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${LOG_PATTERN}</pattern>
+        </encoder>
+    </appender>
+    
+    <!-- 컬러 콘솔 로그 설정 (디버깅용) -->
+    <appender name="CONSOLE_COLOR" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder>
+            <pattern>${CONSOLE_COLOR_PATTERN}</pattern>
+        </encoder>
+    </appender>
+
+    <!-- 환경별 로그 레벨 설정 -->
+    <springProfile name="prod">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE" />
+        </root>
+        <logger name="yousang.rest" level="INFO"/>
+    </springProfile>
+
+    <springProfile name="dev">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_COLOR" />
+        </root>
+        <logger name="yousang.rest" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+    </springProfile>
+
+    <springProfile name="local,default">
+        <root level="INFO">
+            <appender-ref ref="CONSOLE_COLOR" />
+        </root>
+        <logger name="yousang.rest" level="DEBUG"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.jetbrains.exposed.sql" level="DEBUG"/>
+    </springProfile>
+    
+    <!-- 디버그 모드 프로파일 -->
+    <springProfile name="debug">
+        <root level="DEBUG">
+            <appender-ref ref="CONSOLE_COLOR" />
+        </root>
+        <logger name="yousang.rest" level="TRACE"/>
+        <logger name="org.springframework.web" level="DEBUG"/>
+        <logger name="org.springframework.transaction" level="DEBUG"/>
+        <logger name="org.springframework.orm" level="DEBUG"/>
+        <logger name="org.jetbrains.exposed.sql" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG"/>
+        <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE"/>
+    </springProfile>
+</configuration> 

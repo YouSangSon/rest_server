@@ -1,0 +1,34 @@
+spring:
+  profiles: dev
+  datasource:
+    url: jdbc:postgresql://localhost:5432/postgres
+    username: postgres
+    password: postgres
+    hikari:
+      maximum-pool-size: 5
+      connection-timeout: 5000
+  
+server:
+  port: 8080
+
+# Exposed ORM 설정
+exposed:
+  show-sql: true
+
+# 로깅 설정
+logging:
+  level:
+    root: INFO
+    yousang.rest: DEBUG
+    org.springframework: INFO
+    org.jetbrains.exposed: DEBUG
+    org.hibernate: INFO
+    com.zaxxer.hikari: INFO
+
+# 애플리케이션 설정
+app:
+  cors:
+    allowed-origins: "*"
+  api:
+    rate-limit:
+      enabled: false 

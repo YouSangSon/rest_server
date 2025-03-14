@@ -38,3 +38,40 @@ out/
 
 ### Kotlin ###
 .kotlin
+
+### Environment Files ###
+# 실제 설정 파일 (민감한 정보 포함)
+# src/main/resources/application.yml
+# src/main/resources/application-*.yml
+# 예제 파일은 허용
+# src/main/resources/application.yml.example
+# src/main/resources/application-*.yml.example
+
+# env 디렉토리는 별도 저장소로 관리
+env/
+
+# IDE 및 빌드 파일
+build/
+.gradle/
+.idea/
+*.iml
+*.ipr
+*.iws
+out/
+.project
+.classpath
+.settings/
+bin/
+
+# 로그 파일
+*.log
+log/
+logs/
+
+# OS 파일
+.DS_Store
+Thumbs.db
+
+# Kubernetes 설정 파일 (필요한 경우)
+# 실제 배포 설정은 별도로 관리하는 것을 권장
+# *.yaml

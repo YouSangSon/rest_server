@@ -1,0 +1,48 @@
+spring:
+  datasource:
+    url: ${DB_URL}
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 15
+      minimum-idle: 5
+      idle-timeout: 30000
+      connection-timeout: 10000
+      max-lifetime: 2000000
+  jpa:
+    hibernate:
+      ddl-auto: none
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    yousang.rest: ${APP_LOG_LEVEL:INFO}
+    org.springframework: ${SPRING_LOG_LEVEL:WARN}
+  file:
+    name: ${LOG_FILE_PATH:/var/log/rest-server/application.log}
+  pattern:
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+
+server:
+  port: 8080
+  compression:
+    enabled: true
+    mime-types: application/json,application/xml,text/html,text/plain
+    min-response-size: 1KB
+  tomcat:
+    max-threads: ${TOMCAT_MAX_THREADS:200}
+    min-spare-threads: ${TOMCAT_MIN_SPARE_THREADS:20}
+
+# 프로덕션 환경 추가 설정
+app:
+  environment: production
+  debug-mode: false
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    requests-per-second: ${RATE_LIMIT:100}
+    duration-seconds: ${RATE_LIMIT_DURATION:60} 

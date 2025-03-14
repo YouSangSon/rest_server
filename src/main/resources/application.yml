@@ -1,0 +1,68 @@
+spring:
+  application:
+    name: rest
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:dev}
+  threads:
+    virtual:
+      enabled: true
+  main:
+    allow-bean-definition-overriding: true
+    # Disable gRPC auto-configuration only
+    autoconfigure:
+      exclude:
+        - org.springframework.boot.autoconfigure.security.servlet.OAuth2ClientAutoConfiguration
+        - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+  webflux:
+    base-path: ${WEBFLUX_BASE_PATH:/api/v1}
+    static-path-pattern: /static/**
+    cors:
+      allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
+      allowed-methods: ${CORS_ALLOWED_METHODS:GET,POST,PUT,DELETE,OPTIONS}
+      allowed-headers: ${CORS_ALLOWED_HEADERS:*}
+      allow-credentials: true
+      max-age: 3600
+  # 최적화를 위한 Netty 설정
+  reactor:
+    netty:
+      worker:
+        count: ${NETTY_WORKER_COUNT:0}
+  # 데이터베이스 연결 설정 - 공통 설정
+  datasource:
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: ${DB_POOL_SIZE:20}
+      minimum-idle: ${DB_MIN_IDLE:5}
+      idle-timeout: ${DB_IDLE_TIMEOUT:30000}
+      connection-timeout: ${DB_CONN_TIMEOUT:10000}
+      max-lifetime: ${DB_MAX_LIFETIME:2000000}
+  jpa:
+    show-sql: ${JPA_SHOW_SQL:false}
+    properties:
+      hibernate:
+        format_sql: ${HIBERNATE_FORMAT_SQL:false}
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+# 공통 로깅 설정
+logging:
+  level:
+    root: ${LOG_LEVEL:INFO}
+    yousang.rest: ${APP_LOG_LEVEL:DEBUG}
+    org.springframework: ${SPRING_LOG_LEVEL:INFO}
+
+server:
+  port: ${APP_PORT:8080}
+  # 성능 최적화를 위한 설정
+  compression:
+    enabled: ${COMPRESSION_ENABLED:true}
+    mime-types: application/json,application/xml,text/html,text/plain
+    min-response-size: ${COMPRESSION_MIN_RESPONSE_SIZE:1KB}
+
+springdoc:
+  api-docs:
+    path: ${SWAGGER_API_DOCS_PATH:/api-docs}
+  swagger-ui:
+    path: ${SWAGGER_UI_PATH:/swagger-ui.html}
+    operationsSorter: method
+    tagsSorter: alpha 
+    
