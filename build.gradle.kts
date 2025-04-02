@@ -69,7 +69,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-datetime")
     
     // Environment Configuration
-    implementation("io.github.cdimascio:dotenv-kotlin:6.4.1")
+    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
     
     // Database
     implementation("org.postgresql:postgresql")
@@ -79,6 +79,9 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-kotlin-datetime:$exposedVersion")
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposedVersion")
     implementation("com.zaxxer:HikariCP")
+
+    // env
+    implementation("io.github.cdimascio:dotenv-java:3.2.0")
     
     // SpringDoc OpenAPI (Swagger)
     implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")

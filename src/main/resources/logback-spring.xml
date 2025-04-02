@@ -17,13 +17,6 @@
         </encoder>
     </appender>
 
-    <!-- 콘솔 로그 설정 (텍스트 형식 - 개발용) -->
-    <appender name="CONSOLE_TEXT" class="ch.qos.logback.core.ConsoleAppender">
-        <encoder>
-            <pattern>${LOG_PATTERN}</pattern>
-        </encoder>
-    </appender>
-    
     <!-- 컬러 콘솔 로그 설정 (디버깅용) -->
     <appender name="CONSOLE_COLOR" class="ch.qos.logback.core.ConsoleAppender">
         <encoder>

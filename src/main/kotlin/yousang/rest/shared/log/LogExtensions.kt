@@ -7,80 +7,40 @@ import kotlin.contracts.InvocationKind
 import kotlin.contracts.contract
 
 /**
- * 로그에 추가 속성을 포함하여 출력
+ * Simple logger extension functions for common use cases
  */
-fun Logger.infoWithContext(ctx: Map<String, String>, message: String) {
+
+/**
+ * Log with context data added to MDC
+ */
+fun Logger.logWithContext(level: String, message: String, context: Map<String, String>, throwable: Throwable? = null) {
     val previous = mutableMapOf<String, String>()
     try {
-        // 기존 MDC 값 저장
-        ctx.keys.forEach { key ->
+        // Save existing MDC values
+        context.keys.forEach { key ->
             MDC.get(key)?.let { previous[key] = it }
         }
         
-        // 새 MDC 값 설정
-        ctx.forEach { (key, value) -> MDC.put(key, value) }
+        // Set new MDC values
+        context.forEach { (key, value) -> MDC.put(key, value) }
         
-        // 로그 출력
-        info(message)
+        // Log the message
+        when (level) {
+            "trace" -> if (throwable != null) trace(message, throwable) else trace(message)
+            "debug" -> if (throwable != null) debug(message, throwable) else debug(message)
+            "info" -> if (throwable != null) info(message, throwable) else info(message)
+            "warn" -> if (throwable != null) warn(message, throwable) else warn(message)
+            "error" -> if (throwable != null) error(message, throwable) else error(message)
+        }
     } finally {
-        // MDC 값 복원
-        ctx.keys.forEach { key -> MDC.remove(key) }
+        // Restore MDC values
+        context.keys.forEach { key -> MDC.remove(key) }
         previous.forEach { (key, value) -> MDC.put(key, value) }
     }
 }
 
 /**
- * 로그에 추가 속성을 포함하여 출력
- */
-fun Logger.debugWithContext(ctx: Map<String, String>, message: String) {
-    val previous = mutableMapOf<String, String>()
-    try {
-        // 기존 MDC 값 저장
-        ctx.keys.forEach { key ->
-            MDC.get(key)?.let { previous[key] = it }
-        }
-        
-        // 새 MDC 값 설정
-        ctx.forEach { (key, value) -> MDC.put(key, value) }
-        
-        // 로그 출력
-        debug(message)
-    } finally {
-        // MDC 값 복원
-        ctx.keys.forEach { key -> MDC.remove(key) }
-        previous.forEach { (key, value) -> MDC.put(key, value) }
-    }
-}
-
-/**
- * 로그에 추가 속성을 포함하여 출력
- */
-fun Logger.errorWithContext(ctx: Map<String, String>, message: String, throwable: Throwable? = null) {
-    val previous = mutableMapOf<String, String>()
-    try {
-        // 기존 MDC 값 저장
-        ctx.keys.forEach { key ->
-            MDC.get(key)?.let { previous[key] = it }
-        }
-        
-        // 새 MDC 값 설정
-        ctx.forEach { (key, value) -> MDC.put(key, value) }
-        
-        // 로그 출력
-        if (throwable != null) {
-            error(message, throwable)
-        } else {
-            error(message)
-        }
-    } finally {
-        // MDC 값 복원
-        ctx.keys.forEach { key -> MDC.remove(key) }
-        previous.forEach { (key, value) -> MDC.put(key, value) }
-    }
-}
-
-/**
- * 시간 측정과 함께 람다 실행
+ * Measure execution time of a code block
  */
 @OptIn(ExperimentalContracts::class)
 inline fun <T> Logger.withTiming(message: String, block: () -> T): T {
@@ -102,49 +62,7 @@ inline fun <T> Logger.withTiming(message: String, block: () -> T): T {
 }
 
 /**
- * 로깅과 함께 범위 함수 실행 (info 레벨)
- */
-@OptIn(ExperimentalContracts::class)
-inline fun <T> Logger.withInfoScope(message: String, block: () -> T): T {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
-    
-    info("START: $message")
-    return try {
-        block().also {
-            info("END: $message")
-        }
-    } catch (e: Exception) {
-        error("ERROR IN: $message", e)
-        throw e
-    }
-}
-
-/**
- * 로깅과 함께 범위 함수 실행 (debug 레벨)
- */
-@OptIn(ExperimentalContracts::class)
-inline fun <T> Logger.withDebugScope(message: String, block: () -> T): T {
-    contract {
-        callsInPlace(block, InvocationKind.EXACTLY_ONCE)
-    }
-    
-    if (!isDebugEnabled) return block()
-    
-    debug("START: $message")
-    return try {
-        block().also {
-            debug("END: $message")
-        }
-    } catch (e: Exception) {
-        error("ERROR IN: $message", e)
-        throw e
-    }
-}
-
-/**
- * 디버그 로깅과 함께 람다 실행
+ * Execute code block only if debug is enabled
  */
 inline fun Logger.ifDebug(block: Logger.() -> Unit) {
     if (isDebugEnabled) {
@@ -153,7 +71,7 @@ inline fun Logger.ifDebug(block: Logger.() -> Unit) {
 }
 
 /**
- * 트레이스 로깅과 함께 람다 실행
+ * Execute code block only if trace is enabled
  */
 inline fun Logger.ifTrace(block: Logger.() -> Unit) {
     if (isTraceEnabled) {

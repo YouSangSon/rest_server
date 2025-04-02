@@ -6,7 +6,7 @@ import kotlin.properties.ReadOnlyProperty
 import kotlin.reflect.KProperty
 
 /**
- * Delegate for lazy logger instantiation
+ * Simple delegate for lazy logger instantiation
  * Usage: private val log by LoggerDelegate()
  */
 class LoggerDelegate : ReadOnlyProperty<Any?, Logger> {
@@ -20,5 +20,5 @@ class LoggerDelegate : ReadOnlyProperty<Any?, Logger> {
     }
 }
 
-// Singleton logger for static contexts
+// Global logger for static contexts
 val log: Logger = LoggerFactory.getLogger("GlobalLogger")
