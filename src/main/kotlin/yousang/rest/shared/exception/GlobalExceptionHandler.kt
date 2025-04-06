@@ -1,103 +1,108 @@
 package yousang.rest.shared.exception
 
 import org.springframework.http.HttpStatus
+import org.springframework.http.ResponseEntity
 import org.springframework.web.bind.annotation.ControllerAdvice
 import org.springframework.web.bind.annotation.ExceptionHandler
-import org.springframework.web.bind.annotation.ResponseBody
 import org.springframework.web.bind.annotation.ResponseStatus
-import org.springframework.web.context.request.WebRequest
-import yousang.rest.interfaces.ApiResponse
-import yousang.rest.shared.log.LoggerDelegate
-import yousang.rest.shared.utils.DebugHelper
+import org.springframework.web.server.ResponseStatusException
+import mu.KotlinLogging
+import org.springframework.web.bind.annotation.RestControllerAdvice
 
 /**
  * 모든 컨트롤러에서 발생하는 예외를 일관되게 처리하는 글로벌 예외 핸들러
  */
-@ControllerAdvice
+@RestControllerAdvice
 class GlobalExceptionHandler {
     
-    private val log by LoggerDelegate()
-    
-    @ExceptionHandler(BaseException::class)
-    @ResponseBody
-    fun handleBaseException(ex: BaseException, request: WebRequest): ApiResponse {
-        // 디버그 모드에서 더 상세한 로깅 제공
-        DebugHelper.logException(log, "BaseException 발생", ex)
-        
-        // 요청 정보 로깅
-        val requestUri = request.getDescription(false).replace("uri=", "")
-        log.error("Request: $requestUri resulted in error: ${ex.message}")
-        
-        return ApiResponse(
-            statusCode = ex.status.value(), 
-            message = ex.message ?: "An error occurred"
-        )
-    }
-    
-    @ExceptionHandler(ServiceException::class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ResponseBody
-    fun handleServiceException(ex: ServiceException, request: WebRequest): ApiResponse {
-        // 디버그 모드에서 더 상세한 로깅 제공
-        DebugHelper.logException(log, "서비스 예외 발생", ex)
-        
-        // 요청 정보 로깅
-        val requestUri = request.getDescription(false).replace("uri=", "")
-        log.error("Request: $requestUri resulted in service error: ${ex.message}")
-        
-        return ApiResponse(
-            statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            message = ex.message ?: "A service error occurred"
-        )
-    }
-    
-    @ExceptionHandler(DataAccessException::class)
-    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ResponseBody
-    fun handleDataAccessException(ex: DataAccessException, request: WebRequest): ApiResponse {
-        // 디버그 모드에서 더 상세한 로깅 제공
-        DebugHelper.logException(log, "데이터 접근 예외 발생", ex)
-        
-        // 요청 정보 로깅
-        val requestUri = request.getDescription(false).replace("uri=", "")
-        log.error("Request: $requestUri resulted in data access error: ${ex.message}")
-        
-        return ApiResponse(
-            statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            message = "데이터 접근 중 오류가 발생했습니다."
-        )
-    }
+    private val logger = KotlinLogging.logger {}
     
     @ExceptionHandler(Exception::class)
     @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
-    @ResponseBody
-    fun handleAllExceptions(ex: Exception, request: WebRequest): ApiResponse {
-        // 디버그 모드에서 더 상세한 로깅 제공
-        DebugHelper.logException(log, "예상치 못한 예외 발생", ex)
-        
-        // 요청 정보 로깅
-        val requestUri = request.getDescription(false).replace("uri=", "")
-        log.error("Request: $requestUri resulted in unexpected error", ex)
-        
-        // 개발 환경에서는 실제 오류 메시지 포함
-        val isDevMode = isDevMode()
-        val message = if (isDevMode) {
-            "서버 내부 오류가 발생했습니다: ${ex.message}"
-        } else {
-            "서버 내부 오류가 발생했습니다. 관리자에게 문의하세요."
-        }
-        
-        return ApiResponse(
-            statusCode = HttpStatus.INTERNAL_SERVER_ERROR.value(),
-            message = message
+    fun handleAllExceptions(ex: Exception): ResponseEntity<Any> {
+        logger.error(ex) { "Unhandled exception occurred" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                error = "Internal Server Error",
+                message = ex.message ?: "An unexpected error occurred"
+            ),
+            HttpStatus.INTERNAL_SERVER_ERROR
         )
     }
     
-    /**
-     * 현재 개발 모드인지 확인
-     */
-    private fun isDevMode(): Boolean {
-        val env = System.getProperty("spring.profiles.active") ?: "default"
-        return env.contains("dev") || env.contains("local") || env.contains("debug")
+    @ExceptionHandler(IllegalArgumentException::class)
+    @ResponseStatus(HttpStatus.BAD_REQUEST)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<Any> {
+        logger.warn(ex) { "IllegalArgumentException occurred" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = HttpStatus.BAD_REQUEST.value(),
+                error = "Bad Request",
+                message = ex.message ?: "Invalid argument provided"
+            ),
+            HttpStatus.BAD_REQUEST
+        )
     }
+    
+    @ExceptionHandler(NoSuchElementException::class)
+    @ResponseStatus(HttpStatus.NOT_FOUND)
+    fun handleNoSuchElementException(ex: NoSuchElementException): ResponseEntity<Any> {
+        logger.warn(ex) { "NoSuchElementException occurred" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = HttpStatus.NOT_FOUND.value(),
+                error = "Not Found",
+                message = ex.message ?: "Requested resource not found"
+            ),
+            HttpStatus.NOT_FOUND
+        )
+    }
+    
+    @ExceptionHandler(SecurityException::class)
+    @ResponseStatus(HttpStatus.FORBIDDEN)
+    fun handleSecurityException(ex: SecurityException): ResponseEntity<Any> {
+        logger.warn(ex) { "SecurityException occurred" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = HttpStatus.FORBIDDEN.value(),
+                error = "Forbidden",
+                message = ex.message ?: "Access denied"
+            ),
+            HttpStatus.FORBIDDEN
+        )
+    }
+    
+    @ExceptionHandler(RuntimeException::class)
+    @ResponseStatus(HttpStatus.INTERNAL_SERVER_ERROR)
+    fun handleRuntimeException(ex: RuntimeException): ResponseEntity<Any> {
+        logger.error(ex) { "RuntimeException occurred" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = HttpStatus.INTERNAL_SERVER_ERROR.value(),
+                error = "Internal Server Error",
+                message = ex.message ?: "An unexpected runtime error occurred"
+            ),
+            HttpStatus.INTERNAL_SERVER_ERROR
+        )
+    }
+    
+    @ExceptionHandler(ResponseStatusException::class)
+    fun handleResponseStatusException(ex: ResponseStatusException): ResponseEntity<Any> {
+        logger.warn(ex) { "ResponseStatusException occurred: ${ex.statusCode}" }
+        return ResponseEntity(
+            ErrorResponse(
+                status = ex.statusCode.value(),
+                error = ex.reason ?: ex.statusCode.toString(),
+                message = ex.message ?: "An error occurred with status: ${ex.statusCode.value()}"
+            ),
+            ex.statusCode
+        )
+    }
+    
+    data class ErrorResponse(
+        val status: Int,
+        val error: String,
+        val message: String
+    )
 }

@@ -1,0 +1,135 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+- 
+---
+
+## **Instruction to developer: save this file as `.cursorrules` and place it on the root project directory**
+
+### **AI Persona**  
+You are an experienced Senior Kotlin Developer. You always adhere to SOLID principles, DRY principles, KISS principles, and YAGNI principles. You always follow OWASP best practices. You always break tasks down into the smallest units and approach solving any task in a step-by-step manner.
+
+---
+
+### **Technology stack**  
+- **Framework**: Kotlin Spring Boot 3
+- **Dependencies**: Spring Web, Spring Data JPA, Thymeleaf, Lombok (where applicable), PostgreSQL driver  
+
+---
+
+### **Application Logic Design**
+
+1. All request and response handling must be done only in `@RestController`.
+2. All database operation logic must be done in `ServiceImpl` classes, which must use methods provided by `Repositories`.
+3. `RestController` classes cannot directly access `Repositories`, unless absolutely necessary.
+4. `ServiceImpl` classes cannot directly query the database and must use `Repository` methods, unless absolutely necessary.
+5. Data transfer between `RestController` and `ServiceImpl` classes must be done using DTOs.
+6. Entity classes must only be used for database query executions.
+
+---
+
+### **Entities**
+
+1. Annotate entity classes with `@Entity`.
+2. Use Kotlin's `data class` for entities unless specified otherwise.
+3. Annotate entity ID with `@Id` and `@GeneratedValue(strategy = GenerationType.IDENTITY)`.
+4. Use `FetchType.LAZY` for relationships unless specified otherwise.
+5. Annotate entity properties properly according to best practices, e.g., `@Size`, `@NotEmpty`, `@Email`, etc.
+
+---
+
+### **Repository (DAO)**
+
+1. Annotate repository interfaces with `@Repository`.
+2. Repository interfaces must extend `JpaRepository<Entity, ID>` unless specified otherwise.
+3. Use JPQL for all custom queries with `@Query`, unless specified otherwise.
+4. Use `@EntityGraph(attributePaths = ["relatedEntity"])` for relationship queries to avoid the N+1 problem.
+5. Use DTOs as data containers for multi-join queries with `@Query`.
+
+---
+
+### **Service**
+
+1. Service interfaces must define the business logic methods.
+2. Implementations of service interfaces (`ServiceImpl`) must be annotated with `@Service`.
+3. All dependencies in service implementation classes must be injected using constructor injection (recommended in Kotlin).
+4. Return objects from service methods should be DTOs, not entity classes, unless absolutely necessary.
+5. For checking the existence of a record, use repository methods with `.orElseThrow {}` or equivalent lambda expressions.
+6. For multiple sequential database executions, use `@Transactional`.
+
+---
+
+### **Data Transfer Object (DTO)**
+
+1. DTOs should use Kotlin's `data class`, unless specified otherwise.
+2. Validate input parameters using annotations like `@NotNull`, `@NotBlank`, etc., where appropriate.
+
+---
+
+### **RestController**
+
+1. Annotate controller classes with `@RestController`.
+2. Specify class-level API routes using `@RequestMapping`, e.g., (`/api/user`).
+3. Class methods should use best practice HTTP method annotations, e.g., create = `@PostMapping("/create")`.
+4. Dependencies in controller classes should be injected using constructor injection (recommended in Kotlin).
+5. Methods should return objects of type `ResponseEntity<ApiResponse>`.
+6. All method logic should be implemented within try-catch blocks.
+7. Errors caught in catch blocks should be handled by a custom global exception handler (`GlobalExceptionHandler`).
+
+---
+
+### **ApiResponse Class (`/ApiResponse.kt`)**
+
+```kotlin
+data class ApiResponse<T>(
+    val result: String,    // SUCCESS or ERROR
+    val message: String?,  // success or error message
+    val data: T?           // return object from service class if successful
+)
+```
+
+---
+
+### **GlobalExceptionHandler Class (`/GlobalExceptionHandler.kt`)**
+
+```kotlin
+@RestControllerAdvice
+class GlobalExceptionHandler {
+
+    private fun errorResponseEntity(message: String?, status: HttpStatus): ResponseEntity<ApiResponse<Nothing>> {
+        val response = ApiResponse(
+            result = "ERROR",
+            message = message,
+            data = null
+        )
+        return ResponseEntity(response, status)
+    }
+
+    @ExceptionHandler(IllegalArgumentException::class)
+    fun handleIllegalArgumentException(ex: IllegalArgumentException): ResponseEntity<ApiResponse<Nothing>> {
+        return errorResponseEntity(ex.message, HttpStatus.BAD_REQUEST)
+    }
+
+    @ExceptionHandler(Exception::class)
+    fun handleGenericException(ex: Exception): ResponseEntity<ApiResponse<Nothing>> {
+        return errorResponseEntity("An unexpected error occurred.", HttpStatus.INTERNAL_SERVER_ERROR)
+    }
+}
+```
+
+---
+
+### **Additional Notes**
+
+- Use constructor injection instead of field injection for better testability and immutability in Kotlin.
+- Prefer Kotlin's idiomatic features like null safety (`?`) and immutable data structures wherever possible.
+- Avoid overusing annotations like Lombok; Kotlin provides built-in features like data classes that reduce boilerplate code.
+
+This `.cursorrules` file ensures consistent coding practices tailored to Kotlin + Spring Boot projects while adhering to industry standards such as SOLID principles and OWASP best practices!

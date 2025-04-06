@@ -15,7 +15,7 @@ import yousang.rest.shared.log.LoggerDelegate
  */
 @Tag(name = "연금복권 API", description = "연금복권 720+ 번호 조회 및 관리 API")
 @RestController
-@RequestMapping("/api/v1/annuity-lotto")
+@RequestMapping("/annuity-lotto")
 class AnnuityLottoController(private val annuityLottoUseCase: AnnuityLottoUseCase) : BaseController() {
 
     private val log by LoggerDelegate()

@@ -15,7 +15,7 @@ import yousang.rest.shared.log.LoggerDelegate
  */
 @Tag(name = "로또 API", description = "로또 번호 조회 및 관리 API")
 @RestController
-@RequestMapping("/api/v1/lotto")
+@RequestMapping("/lotto")
 class LottoController(private val lottoUseCase: LottoUseCase) : BaseController() {
 
     private val log by LoggerDelegate()
@@ -34,6 +34,7 @@ class LottoController(private val lottoUseCase: LottoUseCase) : BaseController()
         @RequestParam firstDrwNo: Int,
         @RequestParam lastDrwNo: Int
     ): ApiResponse {
+        log.info("Fetching lotto numbers from $firstDrwNo to $lastDrwNo")
         val lottoData = lottoUseCase.getLotto(firstDrwNo, lastDrwNo)
         return ApiResponse(
             statusCode = 200,
@@ -50,6 +51,7 @@ class LottoController(private val lottoUseCase: LottoUseCase) : BaseController()
     @Operation(summary = "로또 번호 저장", description = "로또 번호를 저장합니다.")
     @PutMapping("/numbers", produces = [MediaType.APPLICATION_JSON_VALUE])
     suspend fun putLottoNumber(): ApiResponse {
+        log.info("Saving lotto numbers")
         lottoUseCase.putLotto()
         return ApiResponse(
             statusCode = 200, 

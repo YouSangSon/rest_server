@@ -33,14 +33,14 @@ val jvmXmx = getConfigValue("JVM_XMX", "1g")
 val jvmMaxRamPercentage = getConfigValue("JVM_MAX_RAM_PERCENTAGE", "75")
 
 plugins {
-    id("org.springframework.boot") version "3.2.4"
+    id("org.springframework.boot") version "3.4.3"
     id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.22"
-    kotlin("plugin.spring") version "1.9.22"
-    kotlin("plugin.jpa") version "1.9.22"
-    id("com.google.cloud.tools.jib") version "3.4.0"
+    kotlin("jvm") version "1.9.23"
+    kotlin("plugin.spring") version "1.9.23"
+    kotlin("plugin.jpa") version "1.9.23"
+    id("com.google.cloud.tools.jib") version "3.4.1"
 }
-
+    
 group = "yousang"
 version = "0.0.1-SNAPSHOT"
 
@@ -66,7 +66,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
     
     // Environment Configuration
     implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
@@ -84,32 +84,40 @@ dependencies {
     implementation("io.github.cdimascio:dotenv-java:3.2.0")
     
     // SpringDoc OpenAPI (Swagger)
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.8.6")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
     
     // Logging
-    implementation("io.github.microutils:kotlin-logging-jvm")
+    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
     
     // HTTP Client
     implementation("org.springframework:spring-webflux")
     implementation("io.projectreactor.netty:reactor-netty")
-    implementation("org.jsoup:jsoup:1.19.1")
+    implementation("org.jsoup:jsoup:1.17.2")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.projectlombok:lombok")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis-reactive")
-    implementation("org.springframework.boot:spring-boot-starter-data-redis")
 
     // Testing
-    testImplementation("org.springframework.boot:spring-boot-starter-test")
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
+    testImplementation("io.mockk:mockk:1.13.10")
+    testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("org.springframework.boot:spring-boot-starter-test") {
+        exclude(module = "mockito-core")
+    }
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test")
-    testImplementation("io.mockk:mockk")
-    testImplementation("com.ninja-squad:springmockk")
     testImplementation("org.springframework.security:spring-security-test")
     testImplementation("org.springframework.restdocs:spring-restdocs-mockmvc")
     testImplementation("io.projectreactor:reactor-test")
     developmentOnly("org.springframework.boot:spring-boot-devtools")
     runtimeOnly("com.h2database:h2")
+
+    // AOP
+    implementation("org.springframework.boot:spring-boot-starter-aop")
+    implementation("org.aspectj:aspectjweaver:1.9.22")
+    implementation("org.aspectj:aspectjrt:1.9.22")
 }
 
 tasks.withType<KotlinCompile> {

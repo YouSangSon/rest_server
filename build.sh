@@ -25,7 +25,7 @@ check_env_var() {
   if [ -z "$var_value" ]; then
     if [ -n "$default_value" ]; then
       echo -e "${YELLOW}[!] $var_name 환경 변수가 설정되지 않았습니다. 기본값 '$default_value'를 사용합니다.${NC}"
-      export $var_name="$default_value"
+      export "$var_name"="$default_value"
     else
       echo -e "${RED}[✗] 필수 환경 변수 $var_name가 설정되지 않았습니다.${NC}"
       return 1

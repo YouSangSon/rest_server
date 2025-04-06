@@ -8,13 +8,15 @@ spring:
       enabled: true
   main:
     allow-bean-definition-overriding: true
-    # Disable gRPC auto-configuration only
+    # Disable auto-configurations
     autoconfigure:
       exclude:
         - org.springframework.boot.autoconfigure.security.servlet.OAuth2ClientAutoConfiguration
         - org.springframework.boot.autoconfigure.security.oauth2.client.servlet.OAuth2ClientAutoConfiguration
+        - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+        - org.springframework.boot.autoconfigure.data.redis.RedisReactiveAutoConfiguration
   webflux:
-    base-path: ${WEBFLUX_BASE_PATH:/api/v1}
+    base-path: /api/v1
     static-path-pattern: /static/**
     cors:
       allowed-origins: ${CORS_ALLOWED_ORIGINS:*}
@@ -64,5 +66,11 @@ springdoc:
   swagger-ui:
     path: ${SWAGGER_UI_PATH:/swagger-ui.html}
     operationsSorter: method
-    tagsSorter: alpha 
+    tagsSorter: alpha
+
+# Add management properties to disable Redis health check
+management:
+  health:
+    redis:
+      enabled: false 
     
