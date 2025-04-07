@@ -33,16 +33,16 @@ val jvmXmx = getConfigValue("JVM_XMX", "1g")
 val jvmMaxRamPercentage = getConfigValue("JVM_MAX_RAM_PERCENTAGE", "75")
 
 plugins {
-    id("org.springframework.boot") version "3.4.3"
-    id("io.spring.dependency-management") version "1.1.4"
-    kotlin("jvm") version "1.9.23"
-    kotlin("plugin.spring") version "1.9.23"
-    kotlin("plugin.jpa") version "1.9.23"
-    id("com.google.cloud.tools.jib") version "3.4.1"
+    id("org.springframework.boot") version "3.4.4"
+    id("io.spring.dependency-management") version "1.1.7"
+    kotlin("jvm") version "2.1.20"
+    kotlin("plugin.spring") version "2.1.20"
+    kotlin("plugin.jpa") version "2.1.20"
+    id("com.google.cloud.tools.jib") version "3.4.5"
 }
     
 group = "yousang"
-version = "0.0.1-SNAPSHOT"
+//version = "0.0.1-SNAPSHOT"
 
 java {
     sourceCompatibility = JavaVersion.VERSION_21
@@ -53,6 +53,13 @@ repositories {
 }
 
 val exposedVersion = "0.60.0"
+val dotenvKotlin = "6.5.1"
+val kotlinxDateTime = "0.6.2"
+val webMvc = "2.8.6"
+val kotlinLogging = "7.0.5"
+val jsoup = "1.19.1"
+val mockk = "1.13.17"
+val ninjaMockk = "4.0.2"
 
 dependencies {
     // Spring Boot
@@ -66,10 +73,10 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor")
     implementation("com.fasterxml.jackson.module:jackson-module-kotlin")
-    implementation("org.jetbrains.kotlinx:kotlinx-datetime:0.5.0")
+    implementation("org.jetbrains.kotlinx:kotlinx-datetime:$kotlinxDateTime")
     
     // Environment Configuration
-    implementation("io.github.cdimascio:dotenv-kotlin:6.5.1")
+    implementation("io.github.cdimascio:dotenv-kotlin:$dotenvKotlin")
     
     // Database
     implementation("org.postgresql:postgresql")
@@ -80,30 +87,27 @@ dependencies {
     implementation("org.jetbrains.exposed:exposed-spring-boot-starter:$exposedVersion")
     implementation("com.zaxxer:HikariCP")
 
-    // env
-    implementation("io.github.cdimascio:dotenv-java:3.2.0")
-    
     // SpringDoc OpenAPI (Swagger)
-    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.4.0")
+    implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:$webMvc")
     
     // Logging
-    implementation("io.github.microutils:kotlin-logging-jvm:3.0.5")
+    implementation("io.github.oshai:kotlin-logging-jvm:$kotlinLogging")
     
     // HTTP Client
     implementation("org.springframework:spring-webflux")
     implementation("io.projectreactor.netty:reactor-netty")
-    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("org.jsoup:jsoup:$jsoup")
     implementation("org.springframework.boot:spring-boot-starter-security")
     implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
     implementation("org.projectlombok:lombok")
     implementation("org.springframework.boot:spring-boot-starter-webflux")
 
     // Testing
-    testImplementation("org.junit.jupiter:junit-jupiter-api:5.10.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-engine:5.10.2")
-    testImplementation("org.junit.jupiter:junit-jupiter-params:5.10.2")
-    testImplementation("io.mockk:mockk:1.13.10")
-    testImplementation("com.ninja-squad:springmockk:4.0.2")
+    testImplementation("org.junit.jupiter:junit-jupiter-api")
+    testImplementation("org.junit.jupiter:junit-jupiter-engine")
+    testImplementation("org.junit.jupiter:junit-jupiter-params")
+    testImplementation("io.mockk:mockk:$mockk")
+    testImplementation("com.ninja-squad:springmockk:$ninjaMockk")
     testImplementation("org.springframework.boot:spring-boot-starter-test") {
         exclude(module = "mockito-core")
     }
@@ -116,8 +120,8 @@ dependencies {
 
     // AOP
     implementation("org.springframework.boot:spring-boot-starter-aop")
-    implementation("org.aspectj:aspectjweaver:1.9.22")
-    implementation("org.aspectj:aspectjrt:1.9.22")
+    implementation("org.aspectj:aspectjweaver")
+    implementation("org.aspectj:aspectjrt")
 }
 
 tasks.withType<KotlinCompile> {
