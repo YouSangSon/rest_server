@@ -1,0 +1,14 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+
+# Your rule content
+
+- You can @ files here
+- You can use markdown but dont have to
+
+"파일 수정 전 전체 컨텍스트 읽기"
+"서버 코드 수정 시 코드 로직 확인"
+"에러 발생 시 원인 먼저 수정"

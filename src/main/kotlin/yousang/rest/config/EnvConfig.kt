@@ -1,4 +1,4 @@
-package yousang.rest.shared.config
+package yousang.rest.config
 
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.core.env.Environment
@@ -17,6 +17,22 @@ import org.springframework.stereotype.Component
  *   // ...
  * }
  * ```
+ * 
+ * 주요 환경 변수 설정:
+ * - DB_URL: 데이터베이스 접속 URL
+ * - DB_USERNAME: 데이터베이스 사용자명
+ * - DB_PASSWORD: 데이터베이스 비밀번호
+ * - DB_POOL_SIZE: 커넥션 풀 크기 (기본값: 20)
+ * - DB_MIN_IDLE: 최소 유휴 커넥션 수 (기본값: 10)
+ * - DB_CONN_TIMEOUT: 연결 타임아웃 (기본값: 20000ms)
+ * - DB_IDLE_TIMEOUT: 유휴 타임아웃 (기본값: 30000ms)
+ * - APP_PORT: 애플리케이션 포트 (기본값: 8080)
+ * - API_BASE_PATH: API 기본 경로 (기본값: /api/v1)
+ * - CORS_ALLOWED_ORIGINS: CORS 허용 오리진 (기본값: *)
+ * - CORS_ALLOWED_METHODS: CORS 허용 메서드 (기본값: GET,POST,PUT,DELETE,OPTIONS)
+ * - COMPRESSION_ENABLED: 응답 압축 활성화 여부 (기본값: true)
+ * - REDIS_HOST: Redis 호스트 (기본값: localhost)
+ * - REDIS_PORT: Redis 포트 (기본값: 6379)
  */
 @Component
 class EnvConfig @Autowired constructor(private val environment: Environment) {
@@ -89,6 +105,11 @@ class EnvConfig @Autowired constructor(private val environment: Environment) {
      * 앱 서버 관련 환경 변수에 쉽게 접근하기 위한 객체
      */
     val server: ServerConfig by lazy { ServerConfig(this) }
+    
+    /**
+     * Redis 관련 환경 변수에 쉽게 접근하기 위한 객체
+     */
+    val redis: RedisConfig by lazy { RedisConfig(this) }
 }
 
 /**
@@ -113,4 +134,15 @@ class ServerConfig(private val envConfig: EnvConfig) {
     val corsAllowedOrigins: String? get() = envConfig.get("CORS_ALLOWED_ORIGINS", "*")
     val corsAllowedMethods: String? get() = envConfig.get("CORS_ALLOWED_METHODS", "GET,POST,PUT,DELETE,OPTIONS")
     val compressionEnabled: Boolean get() = envConfig.getBoolean("COMPRESSION_ENABLED", true)
+}
+
+/**
+ * Redis 관련 환경 변수를 위한 구성 클래스
+ */
+class RedisConfig(private val envConfig: EnvConfig) {
+    val host: String get() = envConfig.get("REDIS_HOST", "localhost") ?: "localhost"
+    val port: Int get() = envConfig.getInt("REDIS_PORT", 6379)
+    val password: String? get() = envConfig.get("REDIS_PASSWORD")
+    val database: Int get() = envConfig.getInt("REDIS_DATABASE", 0)
+    val useSSL: Boolean get() = envConfig.getBoolean("REDIS_USE_SSL", false)
 } 
