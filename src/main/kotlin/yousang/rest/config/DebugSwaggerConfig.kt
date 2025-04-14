@@ -51,6 +51,7 @@ class DebugSwaggerConfig {
     /**
      * 디버그 응답 필터
      * 개발 환경에서만 활성화
+     * 요청과 응답에 대한 상세 로깅 제공
      */
     @Bean
     @Profile("dev") // 개발 환경에서만 활성화
@@ -59,12 +60,16 @@ class DebugSwaggerConfig {
             override fun filter(exchange: ServerWebExchange, chain: WebFilterChain): Mono<Void> {
                 val startTime = System.currentTimeMillis()
                 val path = exchange.request.uri.path
-                val method = exchange.request.method.name()
+                val method = exchange.request.method.name() ?: "UNKNOWN"
                 
-                // 요청 헤더 로깅
+                // 요청 로깅
                 logger.debug("Request: $method $path")
-                exchange.request.headers.forEach { (name, values) ->
-                    logger.debug("Header: $name = $values")
+                
+                // 요청 헤더가 많을 수 있으므로 디버그 레벨에서만 상세 로깅
+                if (logger.isDebugEnabled) {
+                    exchange.request.headers.forEach { (name, values) ->
+                        logger.debug("Header: $name = $values")
+                    }
                 }
                 
                 return chain.filter(exchange).doFinally {

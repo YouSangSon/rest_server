@@ -1,6 +1,7 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import java.io.FileInputStream
 import java.util.Properties
+import com.google.protobuf.gradle.*
 
 // env 디렉토리에서 환경 파일 로드
 val envProperties = Properties().apply {
@@ -32,6 +33,10 @@ val jvmXms = getConfigValue("JVM_XMS", "512m")
 val jvmXmx = getConfigValue("JVM_XMX", "1g")
 val jvmMaxRamPercentage = getConfigValue("JVM_MAX_RAM_PERCENTAGE", "75")
 
+val protobufVersion = "3.25.3"
+val grpcVersion = "1.65.1"
+val grpcStarterVersion = "3.1.0"
+
 plugins {
     id("org.springframework.boot") version "3.4.4"
     id("io.spring.dependency-management") version "1.1.7"
@@ -39,6 +44,7 @@ plugins {
     kotlin("plugin.spring") version "2.1.20"
     kotlin("plugin.jpa") version "2.1.20"
     id("com.google.cloud.tools.jib") version "3.4.5"
+    id("com.google.protobuf") version "0.9.4"
 }
     
 group = "yousang"
@@ -60,6 +66,32 @@ val kotlinLogging = "7.0.5"
 val jsoup = "1.19.1"
 val mockk = "1.13.17"
 val ninjaMockk = "4.0.2"
+
+// Define protobuf configuration block outside dependencies
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:${protobufVersion}"
+    }
+    plugins {
+        id("grpc") {
+            artifact = "io.grpc:protoc-gen-grpc-java:${grpcVersion}"
+        }
+        id("grpckt") {
+            artifact = "io.grpc:protoc-gen-grpc-kotlin:1.4.1"
+        }
+    }
+    generateProtoTasks {
+        all().forEach { task ->
+            task.plugins {
+                id("grpc")
+                id("grpckt")
+            }
+            task.builtins {
+                id("kotlin")
+            }
+        }
+    }
+}
 
 dependencies {
     // Spring Boot
@@ -122,9 +154,22 @@ dependencies {
     implementation("org.springframework.boot:spring-boot-starter-aop")
     implementation("org.aspectj:aspectjweaver")
     implementation("org.aspectj:aspectjrt")
+
+    // gRPC
+    implementation("io.grpc:grpc-netty-shaded:${grpcVersion}")
+    implementation("io.grpc:grpc-protobuf:${grpcVersion}")
+    implementation("io.grpc:grpc-stub:${grpcVersion}")
+    implementation("io.grpc:grpc-kotlin-stub:1.4.1")
+    implementation("com.google.protobuf:protobuf-kotlin:${protobufVersion}")
+    implementation("net.devh:grpc-spring-boot-starter:${grpcStarterVersion}")
+
+    // Needed for Java gRPC generated code if you use it alongside Kotlin
+    compileOnly("org.apache.tomcat:annotations-api:6.0.53")
+    runtimeOnly("io.grpc:grpc-services:${grpcVersion}")
 }
 
 tasks.withType<KotlinCompile> {
+    dependsOn(tasks.withType<com.google.protobuf.gradle.GenerateProtoTask>())
     kotlinOptions {
         freeCompilerArgs += "-Xjsr305=strict"
         jvmTarget = "21"
@@ -189,4 +234,10 @@ jib {
         }
     }
 }
+
+// Add generated sources to the source sets
+sourceSets["main"].java.srcDirs("build/generated/source/proto/main/grpc")
+sourceSets["main"].java.srcDirs("build/generated/source/proto/main/java")
+sourceSets["main"].kotlin.srcDirs("build/generated/source/proto/main/grpckt")
+sourceSets["main"].kotlin.srcDirs("build/generated/source/proto/main/kotlin")
 

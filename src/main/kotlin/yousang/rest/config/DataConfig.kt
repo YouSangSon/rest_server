@@ -1,5 +1,7 @@
 package yousang.rest.config
 
+import com.zaxxer.hikari.HikariConfig
+import com.zaxxer.hikari.HikariDataSource
 import org.jetbrains.exposed.spring.SpringTransactionManager
 import org.jetbrains.exposed.sql.Database
 import org.slf4j.LoggerFactory
@@ -7,6 +9,7 @@ import org.springframework.boot.ApplicationRunner
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
 import org.springframework.transaction.annotation.EnableTransactionManagement
+import java.time.Duration
 import javax.sql.DataSource
 
 /**
@@ -40,25 +43,40 @@ class DataConfig {
     /**
      * Redis 연결 팩토리
      */
-//    @Bean
-//    fun redisConnectionFactory(): RedisConnectionFactory {
-//        val host = System.getProperty("REDIS_HOST") ?: "localhost"
-//        val port = System.getProperty("REDIS_PORT")?.toIntOrNull() ?: 6379
-//
-//        return LettuceConnectionFactory(host, port)
-//    }
-//
+    // @Bean
+    // fun redisConnectionFactory(envConfig: EnvConfig): RedisConnectionFactory {
+    //     val redisStandaloneConfig = RedisStandaloneConfiguration().apply {
+    //         hostName = envConfig.redis.host
+    //         port = envConfig.redis.port
+            
+    //         if (envConfig.redis.password != null) {
+    //             setPassword(envConfig.redis.password)
+    //         }
+            
+    //         database = envConfig.redis.database
+    //     }
+        
+    //     val clientConfig = LettuceClientConfiguration.builder()
+    //         .commandTimeout(Duration.ofSeconds(5))
+            
+    //     if (envConfig.redis.useSSL) {
+    //         clientConfig.useSsl()
+    //     }
+        
+    //     return LettuceConnectionFactory(redisStandaloneConfig, clientConfig.build())
+    // }
+    
     /**
      * Redis 템플릿 설정
      */
-//    @Bean
-//    fun redisTemplate(connectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
-//        val template = RedisTemplate<String, Any>()
-//        template.connectionFactory = connectionFactory
-//        template.keySerializer = StringRedisSerializer()
-//
-//        return template
-//    }
+    // @Bean
+    // fun redisTemplate(connectionFactory: RedisConnectionFactory): RedisTemplate<String, Any> {
+    //     val template = RedisTemplate<String, Any>()
+    //     template.connectionFactory = connectionFactory
+    //     template.keySerializer = StringRedisSerializer()
+        
+    //     return template
+    // }
     
     /**
      * 애플리케이션 시작 시 데이터베이스 초기화
