@@ -29,8 +29,11 @@ spring:
     netty:
       worker:
         count: ${NETTY_WORKER_COUNT:0}
-  # 데이터베이스 연결 설정 - 공통 설정
+  # 데이터베이스 연결 설정 - PostgreSQL
   datasource:
+    url: ${DB_URL:jdbc:postgresql://localhost:5432/rest_dev}
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
     hikari:
       maximum-pool-size: ${DB_POOL_SIZE:20}
@@ -40,10 +43,58 @@ spring:
       max-lifetime: ${DB_MAX_LIFETIME:2000000}
   jpa:
     show-sql: ${JPA_SHOW_SQL:false}
+    hibernate:
+      ddl-auto: ${JPA_DDL_AUTO:update}
     properties:
       hibernate:
         format_sql: ${HIBERNATE_FORMAT_SQL:false}
         dialect: org.hibernate.dialect.PostgreSQLDialect
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+        batch_versioned_data: true
+  # OAuth2 소셜 로그인 설정
+  security:
+    oauth2:
+      client:
+        registration:
+          google:
+            client-id: ${GOOGLE_CLIENT_ID:}
+            client-secret: ${GOOGLE_CLIENT_SECRET:}
+            scope:
+              - email
+              - profile
+          github:
+            client-id: ${GITHUB_CLIENT_ID:}
+            client-secret: ${GITHUB_CLIENT_SECRET:}
+            scope:
+              - user:email
+              - read:user
+          kakao:
+            client-id: ${KAKAO_CLIENT_ID:}
+            client-secret: ${KAKAO_CLIENT_SECRET:}
+            authorization-grant-type: authorization_code
+            redirect-uri: "{baseUrl}/login/oauth2/code/{registrationId}"
+            scope:
+              - profile_nickname
+              - account_email
+        provider:
+          google:
+            authorization-uri: https://accounts.google.com/o/oauth2/auth
+            token-uri: https://oauth2.googleapis.com/token
+            user-info-uri: https://www.googleapis.com/oauth2/v3/userinfo
+            user-name-attribute: sub
+          github:
+            authorization-uri: https://github.com/login/oauth/authorize
+            token-uri: https://github.com/login/oauth/access_token
+            user-info-uri: https://api.github.com/user
+            user-name-attribute: id
+          kakao:
+            authorization-uri: https://kauth.kakao.com/oauth/authorize
+            token-uri: https://kauth.kakao.com/oauth/token
+            user-info-uri: https://kapi.kakao.com/v2/user/me
+            user-name-attribute: id
 
 # 공통 로깅 설정
 logging:
@@ -51,6 +102,8 @@ logging:
     root: ${LOG_LEVEL:INFO}
     yousang.rest: ${APP_LOG_LEVEL:DEBUG}
     org.springframework: ${SPRING_LOG_LEVEL:INFO}
+    org.springframework.security: DEBUG
+    org.springframework.web: DEBUG
 
 server:
   port: ${APP_PORT:8080}
@@ -60,17 +113,41 @@ server:
     mime-types: application/json,application/xml,text/html,text/plain
     min-response-size: ${COMPRESSION_MIN_RESPONSE_SIZE:1KB}
 
+# Swagger/OpenAPI 설정
 springdoc:
   api-docs:
     path: ${SWAGGER_API_DOCS_PATH:/api-docs}
+    enabled: true
   swagger-ui:
     path: ${SWAGGER_UI_PATH:/swagger-ui.html}
     operationsSorter: method
     tagsSorter: alpha
+    docExpansion: none
+    disable-swagger-default-url: true
+  info:
+    title: REST Server API
+    description: REST Server 프로젝트의 API 문서
+    version: 1.0.0
+    contact:
+      name: Development Team
+      email: dev@example.com
+  servers:
+    - url: http://localhost:8080
+      description: 로컬 개발 서버
+    - url: https://api.yourdomain.com
+      description: 프로덕션 서버
 
 # Add management properties to disable Redis health check
 management:
   health:
     redis:
-      enabled: false 
+      enabled: false
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics,prometheus
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: always 
     

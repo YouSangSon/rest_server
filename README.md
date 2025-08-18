@@ -1,317 +1,223 @@
 # REST Server
 
-Spring Boot 기반 REST API 서버
+Kotlin + Spring Boot 3 + WebFlux 기반의 REST API 서버입니다.
 
-## 환경 변수 관리
+## 🚀 주요 기능
 
-이 프로젝트는 모든 설정을 `.env` 파일을 통해 관리합니다. 이 방식은 민감한 정보가 소스 코드에 포함되지 않도록 하고, 다양한 환경에서 쉽게 구성할 수 있도록 합니다.
+- **Kotlin + Spring Boot 3**: 최신 Spring Boot 프레임워크와 Kotlin 언어 사용
+- **Spring WebFlux**: 비동기 비차단 I/O 기반의 반응형 웹 애플리케이션
+- **PostgreSQL**: 프로덕션급 관계형 데이터베이스 지원
+- **OAuth2 소셜 로그인**: Google, GitHub, Kakao 소셜 로그인 지원
+- **Swagger/OpenAPI**: 자동 API 문서화 및 테스트 인터페이스
+- **Exposed ORM**: Kotlin 전용 ORM 프레임워크
+- **gRPC**: 마이크로서비스 간 통신을 위한 gRPC 지원
+- **WebSocket**: 실시간 양방향 통신
+- **Redis**: 캐싱 및 세션 저장소
+- **Docker**: 컨테이너화 및 배포 지원
 
-### 1. .env 파일 설정하기
+## 🏗️ 아키텍처
 
-```bash
-# .env.example 파일을 복사하여 사용
-cp .env.example .env
+- **헥사고날 아키텍처**: 도메인 중심의 계층 분리
+- **포트와 어댑터 패턴**: 의존성 역전 원칙 적용
+- **반응형 프로그래밍**: WebFlux와 Kotlin Coroutines 활용
+- **마이크로서비스 준비**: gRPC, WebSocket, Kafka 지원
 
-# 편집기로 실제 값 입력
-vi .env   # 또는 선호하는 텍스트 편집기 사용
-```
+## 📋 요구사항
 
-`.env` 파일에는 다음과 같은 설정이 포함됩니다:
+- **JDK**: 21 이상
+- **Kotlin**: 1.9.x 이상
+- **Gradle**: 8.x 이상
+- **PostgreSQL**: 15 이상
+- **Redis**: 7.x 이상
+- **Docker**: 20.x 이상 (선택사항)
 
-```properties
-# Docker 레지스트리 설정
-DOCKER_REGISTRY_URL=your-registry-url:port
+## 🚀 빠른 시작
 
-# 데이터베이스 연결 설정
-DB_URL=jdbc:postgresql://your-db-host:5432/your-db
-DB_USERNAME=your-username
-DB_PASSWORD=your-password
-
-# Spring Boot 설정
-SPRING_PROFILES_ACTIVE=prod
-APP_PORT=8080
-
-# 기타 애플리케이션 설정
-CORS_ALLOWED_ORIGINS=https://example.com
-```
-
-### 2. 환경 변수 적용 범위
-
-설정된 환경 변수는 다음 컴포넌트에 적용됩니다:
-
-1. **Spring Boot 애플리케이션**: `application.yml`과 프로파일별 설정 파일에서 `${변수명}` 형식으로 사용
-2. **build.gradle.kts**: 빌드 스크립트에서 Docker 이미지 빌드 설정
-3. **build.sh**: Docker 이미지 빌드 및 배포 스크립트
-
-### 3. 애플리케이션 설정 파일 준비
+### 1. 프로젝트 클론
 
 ```bash
-# 기본 설정 파일
-cp src/main/resources/application.yml.example src/main/resources/application.yml
-
-# 환경별 설정 파일
-cp src/main/resources/application-dev.yml.example src/main/resources/application-dev.yml
-cp src/main/resources/application-prod.yml.example src/main/resources/application-prod.yml
+git clone https://github.com/YourUsername/rest_server.git
+cd rest_server
 ```
 
-## 빌드 및 배포
-
-### 이미지 빌드 및 푸시
+### 2. 환경 설정
 
 ```bash
-./build.sh
+# 개발 환경 설정 파일 복사
+cp env/dev.env.example env/dev.env
+
+# 환경 변수 설정 (OAuth2 클라이언트 정보 등)
+# Google, GitHub, Kakao OAuth2 앱 등록 후 클라이언트 ID/시크릿 설정
 ```
 
-이 스크립트는:
-1. `.env` 파일에서 모든 설정을 로드
-2. 레지스트리에서 기존 이미지 태그 조회
-3. 버전 입력 요청 (Enter 키를 누르면 'latest' 사용)
-4. 지정한 태그로 이미지 빌드 및 푸시
-5. 선택적으로 Kubernetes 배포 재시작
-
-### Gradle로 직접 빌드
+### 3. Docker Compose로 인프라 실행
 
 ```bash
-# 환경 변수 정보 확인
-./gradlew printEnv
+# PostgreSQL, Redis, pgAdmin 실행
+docker-compose up -d postgres redis pgadmin
 
-# 이미지 빌드 및 푸시
-./gradlew jib
+# 데이터베이스 준비 대기 (약 30초)
+sleep 30
 ```
 
-### 로컬에서 실행
+### 4. 애플리케이션 실행
 
 ```bash
-# .env에 설정된 프로파일로 실행
+# Gradle로 실행
 ./gradlew bootRun
 
-# 특정 프로파일로 실행
-./gradlew bootRun --args='--spring.profiles.active=dev'
+# 또는 Docker로 실행
+docker-compose up rest-server
 ```
 
-## 환경 변수 목록
+### 5. 접속 확인
 
-| 변수명 | 설명 | 기본값 |
-|--------|------|--------|
-| `DOCKER_REGISTRY_URL` | Docker 레지스트리 주소 | `localhost:5000` |
-| `DB_URL` | 데이터베이스 연결 URL | `jdbc:postgresql://localhost:5432/postgres` |
-| `DB_USERNAME` | 데이터베이스 사용자 이름 | `postgres` |
-| `DB_PASSWORD` | 데이터베이스 암호 | `postgres` |
-| `DB_POOL_SIZE` | 데이터베이스 연결 풀 크기 | 개발: `5`, 운영: `20` |
-| `SPRING_PROFILES_ACTIVE` | 활성 Spring 프로파일 | `prod` |
-| `APP_PORT` | 애플리케이션 포트 | `8080` |
-| `LOG_LEVEL` | 기본 로그 레벨 | 개발: `INFO`, 운영: `WARN` |
-| `LOG_FILE_PATH` | 로그 파일 경로 | `/var/log/rest-server/application.log` |
-| `CORS_ALLOWED_ORIGINS` | CORS 허용 출처 | 개발: `*`, 운영: `https://example.com` |
-| `JVM_XMS` | JVM 최소 힙 크기 | `512m` |
-| `JVM_XMX` | JVM 최대 힙 크기 | `1g` |
+- **애플리케이션**: http://localhost:8080
+- **Swagger UI**: http://localhost:8080/swagger-ui.html
+- **API 문서**: http://localhost:8080/api-docs
+- **pgAdmin**: http://localhost:5050 (admin@example.com / admin)
+- **PostgreSQL**: localhost:5432
+- **Redis**: localhost:6379
 
-## 기술 스택
+## 🔐 OAuth2 소셜 로그인 설정
 
-- 언어: Kotlin
-- 프레임워크: Spring Boot 3.2.4
-- 데이터베이스: PostgreSQL, Exposed ORM
-- 컨테이너화: Jib
-- 배포: Kubernetes
+### Google OAuth2
+1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트 생성
+2. OAuth 2.0 클라이언트 ID 생성
+3. `env/dev.env`에 클라이언트 ID/시크릿 설정
 
-## Recent Updates
+### GitHub OAuth2
+1. [GitHub Developer Settings](https://github.com/settings/developers)에서 OAuth App 생성
+2. `env/dev.env`에 클라이언트 ID/시크릿 설정
 
-The project has recently undergone significant refactoring to improve performance, stability, and maintainability:
+### Kakao OAuth2
+1. [Kakao Developers](https://developers.kakao.com/)에서 애플리케이션 생성
+2. `env/dev.env`에 클라이언트 ID/시크릿 설정
 
-- **Transaction Management**: Resolved nested transaction issues that caused "Connection is closed" errors
-- **Code Organization**: Enhanced separation of concerns in DTO, Service, and Repository layers
-- **Error Handling**: Improved exception handling for greater resilience during batch operations
-- **Performance**: Optimized database connection usage and transaction boundaries
+## 📚 API 사용법
 
-For detailed information about the refactoring changes, please see [refactoring.md](refactoring.md).
-
-## Project Architecture
-
-This project implements a layered hexagonal architecture with the following structure:
-
-```
-src/main/kotlin/yousang/rest/
-├── application/        # Application services implementing use cases
-├── config/             # Configuration classes for the application
-├── domain/             # Domain models and business logic
-├── infra/              # Infrastructure implementations (repositories, external services)
-├── interfaces/         # Controllers and request/response DTOs
-├── shared/             # Shared utilities and cross-cutting concerns
-│   ├── exception/      # Exception handling
-│   ├── log/            # Advanced logging utilities
-│   └── Constants.kt    # Application constants
-└── RestApplication.kt  # Application entry point
-```
-
-## Technology Stack
-
-- **Language**: Kotlin 2.1.10
-- **Framework**: Spring Boot 3.4.3
-- **Database**:
-  - PostgreSQL (Production)
-  - H2 (Development)
-  - Exposed ORM (SQL DSL & DAO)
-  - Spring Data JPA
-  - Redis
-- **Security**: Spring Security, OAuth2
-- **API Documentation**: OpenAPI (Springdoc)
-- **Validation**: Spring Validation
-- **Testing**: JUnit 5, Spring Test
-- **Logging**: Logback with Logstash encoder
-- **Additional Features**:
-  - WebFlux for reactive programming
-  - Kotlin Coroutines
-  - Kafka integration
-  - WebSockets
-  - gRPC support
-  - AOP capabilities
-
-## Logging System
-
-The project includes a comprehensive logging system with advanced features:
-
-- **Structured Logging**: JSON-formatted logs with contextual information
-- **Colored Logging**: Terminal-friendly colored log output
-- **Performance Monitoring**: Execution time tracking for operations
-- **Visual Logging**: ASCII art-based visual representation for important logs
-- **AOP-based Logging**: Automatic logging of method invocations
-- **Request Context**: Correlation IDs for request tracing
-- **Extensive Log Extensions**: Convenient logging utility functions
-
-## Getting Started
-
-### Prerequisites
-
-- JDK 21
-- Gradle
-- Docker (optional, for containerized databases)
-
-### Development Setup
-
-1. Clone the repository
-2. Copy the example configuration files:
-   ```bash
-   cp src/main/resources/application.yml.example src/main/resources/application.yml
-   cp src/main/resources/application-dev.yml.example src/main/resources/application-dev.yml
-   ```
-3. Configure the database connection directly in `application.yml` and `application-dev.yml`:
-   ```yaml
-   spring:
-     datasource:
-       url: jdbc:postgresql://your_host:your_port/your_db
-       username: your_username
-       password: your_password
-       driver-class-name: org.postgresql.Driver
-   ```
-
-### Configuration
-
-Database and other configuration values should be configured directly in the application YAML files.
-
-Example `application.yml` configuration:
-```yaml
-spring:
-  application:
-    name: rest
-  datasource:
-    url: jdbc:postgresql://your_host:your_port/your_db
-    username: your_username
-    password: your_password
-    driver-class-name: org.postgresql.Driver
-    hikari:
-      maximum-pool-size: 20
-      minimum-idle: 5
-      idle-timeout: 30000
-      connection-timeout: 10000
-      max-lifetime: 2000000
-  jpa:
-    hibernate:
-      ddl-auto: update
-    show-sql: true
-    properties:
-      hibernate:
-        format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
-
-server:
-  port: 8080
-```
-
-### Security Considerations
-
-When deploying or sharing this application:
-
-1. Never commit sensitive information (API keys, passwords, etc.) to version control
-2. Ensure `application.yml` and `
-
-## 환경 설정 관리
-
-이 프로젝트는 두 가지 방식으로 설정을 관리합니다:
-
-1. **민감한 정보**: 'env' 디렉토리의 환경 파일에서 관리
-2. **구조화된 설정**: `application.yml` 파일에서 관리
-
-### 프로필 기반 설정
-
-Spring의 프로필 기능을 활용하여 환경별 설정을 관리합니다:
-
-- **개발 환경**: `env/dev.env` + `application-dev.yml`
-- **운영 환경**: `env/prod.env` + `application-prod.yml`
-
-### 설정 파일 구조
-
-- `env/dev.env`: 개발 환경의 민감한 정보와 환경별 설정값
-- `env/prod.env`: 운영 환경의 민감한 정보와 환경별 설정값
-- `env/example.env`: 환경 설정 예시 파일
-- `application.yml`: 공통 구조화 설정
-- `application-dev.yml`: 개발 환경 전용 구조화 설정
-- `application-prod.yml`: 운영 환경 전용 구조화 설정
-
-### 민감한 설정 관리
-
-이 프로젝트에서는 민감한 설정 정보를 `env` 디렉토리에 저장하고, 이를 별도의 프라이빗 Git 저장소로 관리합니다:
-
-1. **env 디렉토리 초기화**:
-   ```bash
-   # 메인 저장소 클론 후
-   git clone https://your-private-repo/rest-server-env.git env
-   ```
-
-2. **새로운 환경에서 설정**:
-   ```bash
-   # env 디렉토리가 존재하지 않는 경우
-   mkdir -p env
-   cp env-example/example.env env/dev.env
-   # 필요한 설정 수정
-   ```
-
-3. **env 디렉토리를 별도 저장소로 관리**:
-   ```bash
-   cd env
-   git init
-   git remote add origin https://your-private-repo/rest-server-env.git
-   git add .
-   git commit -m "Add environment files"
-   git push -u origin main
-   ```
-
-### 사용 방법
-
-1. `env/example.env`를 복사하여 `env/dev.env` 파일 생성
-2. 개발 환경에서는 `env/dev.env` 파일만 수정하여 사용
-3. 운영 환경에서는 `env/prod.env` 파일 생성 및 설정
-4. 환경 변수 `SPRING_PROFILES_ACTIVE`를 통해 프로필 지정 (기본값: `dev`)
+### 인증 API
 
 ```bash
-# 개발 환경으로 실행
-SPRING_PROFILES_ACTIVE=dev ./gradlew bootRun
+# 현재 사용자 정보 조회
+curl -H "Authorization: Bearer {token}" \
+  http://localhost:8080/api/v1/auth/me
 
-# 운영 환경으로 실행
-SPRING_PROFILES_ACTIVE=prod ./gradlew bootRun
+# 지원하는 OAuth2 제공자 목록
+curl http://localhost:8080/api/v1/auth/providers
+
+# 사용자 프로필 수정
+curl -X PUT -H "Authorization: Bearer {token}" \
+  -H "Content-Type: application/json" \
+  -d '{"username": "새로운이름"}' \
+  http://localhost:8080/api/v1/auth/profile
+
+# 로그아웃
+curl -X POST -H "Authorization: Bearer {token}" \
+  http://localhost:8080/api/v1/auth/logout
 ```
 
-### 주의사항
+### 로또 API
 
-- `env` 디렉토리는 메인 저장소의 `.gitignore`에 포함되어 있으며, 별도의 프라이빗 저장소로 관리됩니다.
-- 민감한 정보는 항상 `env/*.env` 파일에 저장하고, 환경 변수를 통해 로드합니다.
-- 구조화된 설정은 `application-{profile}.yml` 파일에 저장합니다.
+```bash
+# 로또 당첨 정보 조회
+curl http://localhost:8080/api/v1/lotto/1001
+
+# 로또 당첨 정보 생성
+curl -X POST -H "Content-Type: application/json" \
+  -d '{"drwNo": 1003, "drwNoDate": "2024-01-15", ...}' \
+  http://localhost:8080/api/v1/lotto
+```
+
+## 🧪 테스트
+
+```bash
+# 단위 테스트
+./gradlew test
+
+# 통합 테스트
+./gradlew integrationTest
+
+# 전체 테스트
+./gradlew check
+```
+
+## 📊 모니터링
+
+- **Health Check**: `/actuator/health`
+- **Metrics**: `/actuator/metrics`
+- **Prometheus**: `/actuator/prometheus`
+
+## 🐳 Docker
+
+```bash
+# 이미지 빌드
+docker build -t rest-server .
+
+# 컨테이너 실행
+docker run -p 8080:8080 rest-server
+
+# 전체 스택 실행
+docker-compose up -d
+```
+
+## 📁 프로젝트 구조
+
+```
+src/
+├── main/
+│   ├── kotlin/yousang/rest/
+│   │   ├── application/          # 애플리케이션 서비스
+│   │   ├── config/               # 설정 클래스
+│   │   ├── domain/               # 도메인 모델
+│   │   ├── infra/                # 인프라 구현
+│   │   └── interfaces/           # API 인터페이스
+│   └── resources/
+│       ├── application.yml       # 애플리케이션 설정
+│       └── db/                   # 데이터베이스 스크립트
+├── test/                         # 테스트 코드
+└── proto/                        # gRPC 프로토콜 정의
+```
+
+## 🔧 개발 환경 설정
+
+### IntelliJ IDEA
+1. Kotlin 플러그인 설치
+2. Spring Boot 플러그인 설치
+3. 프로젝트 임포트 후 Gradle 동기화
+
+### VS Code
+1. Kotlin, Spring Boot Extension Pack 설치
+2. 프로젝트 폴더 열기
+
+## 📝 문서
+
+자세한 문서는 [docs/](docs/) 디렉토리를 참조하세요:
+
+- [시스템 아키텍처](docs/architecture/system-overview.md)
+- [API 엔드포인트](docs/api/endpoints.md)
+- [개발 가이드](docs/development/setup.md)
+- [배포 가이드](docs/deployment/infrastructure.md)
+
+## 🤝 기여하기
+
+1. Fork the Project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
+
+## 📄 라이선스
+
+이 프로젝트는 MIT 라이선스 하에 배포됩니다. 자세한 내용은 [LICENSE](LICENSE) 파일을 참조하세요.
+
+## 📞 지원
+
+- **이슈**: [GitHub Issues](https://github.com/YourUsername/rest_server/issues)
+- **문서**: [docs/](docs/) 디렉토리
+- **이메일**: dev@example.com
+
+---
+
+**마지막 업데이트**: 2024-12-19  
+**버전**: v1.1.0

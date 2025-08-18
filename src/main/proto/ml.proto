@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+option java_multiple_files = true;
+option java_package = "yousang.rest.grpc";
+option java_outer_classname = "GreeterProto";
+option objc_class_prefix = "HLW";
+
+package ml;
+
+// ML Service definition.
+service MLService {
+  // Sends a greeting
+  rpc Predict (PredictRequest) returns (PredictResponse) {}
+}
+
+// The request message containing the user's name.
+message PredictRequest {
+  string name = 1;
+}
+
+// The response message containing the greetings
+message PredictResponse {
+  string message = 1;
+}
