@@ -1,3 +1,70 @@
+# REST Server (Kotlin + Spring Boot · TDD · DDD · Clean Architecture)
+
+이 프로젝트는 기존 REST 서버를 현재 코드베이스로 마이그레이션하여 TDD + DDD + 클린 아키텍처를 적용했습니다. 아래 안내는 현재 구현과 실행 방법을 기준으로 최신화되었습니다.
+
+중요: 이 프로젝트는 Spring Web MVC를 사용합니다. 기존 README에 언급된 WebFlux/OAuth2/Redis/Swagger 항목은 현재 코드에는 포함되어 있지 않습니다. 필요 시 추후 추가할 수 있습니다.
+
+## 현재 구현 요약
+- 언어/런타임: Kotlin 2.2.20, Java 21, Spring Boot 3.5
+- 아키텍처: 도메인(순수 Kotlin) · 애플리케이션(포트/유스케이스) · 어댑터(Web/DB) · 구성(Config)
+- DB: PostgreSQL + JetBrains Exposed (수동 SQL/DSL) — 프로필 postgres에서 활성
+- 테스트: JUnit 5 기반 단위/슬라이스 테스트, `./gradlew test`
+
+## 엔드포인트
+- Greeting
+  - GET /api/v1/greetings?name=Junie → {"message":"Hello, Junie!"}
+- DB 시간 (postgres 프로필 필요)
+  - GET /api/v1/db/time → {"time":"YYYY-MM-DDTHH:mm:ss.SSS+ZZ:zz"}
+- Lotto (저장형, postgres 프로필 필요)
+  - POST /api/v1/lotto → 새 티켓 생성·저장 (201)
+  - GET /api/v1/lotto/{id} → 단건 조회 (404 시 NotFound)
+  - GET /api/v1/lotto → 전체 목록
+- Lotto 공식 회차 번호 (DB 불필요)
+  - GET /api/v1/lotto/numbers?firstDrwNo=1&lastDrwNo=10
+  - PUT /api/v1/lotto/numbers
+  - GET /api/v1/lotto/numbers/{drwNo}
+
+자세한 설명은 docs 디렉터리를 참고하세요:
+- docs/api/endpoints.md
+- docs/architecture/system-overview.md
+
+## 빠른 시작
+1) 테스트 실행(권장)
+```
+./gradlew test
+```
+
+2) 애플리케이션 실행 (DB 없이 — Greeting/공식 Lotto 번호 API만 동작)
+```
+./gradlew bootRun
+```
+
+3) PostgreSQL 기능 사용하기 (postgres 프로필)
+- Docker로 DB 실행:
+```
+docker-compose up -d postgres
+```
+- 환경 변수 설정(기본값 존재):
+```
+export SPRING_PROFILES_ACTIVE=postgres
+# 선택: 기본값은 아래와 동일
+export POSTGRES_URL="jdbc:postgresql://localhost:5432/rest_server"
+export POSTGRES_USER=postgres
+export POSTGRES_PASSWORD=postgres
+```
+- 실행:
+```
+./gradlew bootRun
+```
+
+## 요구 사항
+- JDK 21
+- Gradle Wrapper 포함(8.14.3) → 로컬 Gradle 설치 불필요
+- PostgreSQL은 postgres 프로필 사용 시 필요
+
+## 참고
+- 기존 README의 아래 내용은 마이그레이션 이전 문서로 현재 코드와 다를 수 있습니다. 필요 시 점진적으로 정리해 나가겠습니다.
+
 # REST Server
 
 Kotlin + Spring Boot 3 + WebFlux 기반의 REST API 서버입니다.
