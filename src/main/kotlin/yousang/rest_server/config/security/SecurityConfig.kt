@@ -18,7 +18,9 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 @EnableWebSecurity
 @EnableMethodSecurity(prePostEnabled = true, securedEnabled = true)
 class SecurityConfig(
-    private val jwtAuthenticationFilter: JwtAuthenticationFilter
+    private val jwtAuthenticationFilter: JwtAuthenticationFilter,
+    private val customOAuth2UserService: CustomOAuth2UserService,
+    private val oAuth2AuthenticationSuccessHandler: OAuth2AuthenticationSuccessHandler
 ) {
 
     @Bean
@@ -46,12 +48,21 @@ class SecurityConfig(
                         "/api-docs/**",
                         "/v3/api-docs/**",
                         "/swagger-resources/**",
-                        "/webjars/**"
+                        "/webjars/**",
+                        "/oauth2/**",
+                        "/login/oauth2/**"
                     ).permitAll()
                     // Public GET requests
                     .requestMatchers(HttpMethod.GET, "/api/v1/lotto/**").permitAll()
                     // All other requests need authentication
                     .anyRequest().authenticated()
+            }
+            .oauth2Login { oauth2 ->
+                oauth2
+                    .userInfoEndpoint { userInfo ->
+                        userInfo.userService(customOAuth2UserService)
+                    }
+                    .successHandler(oAuth2AuthenticationSuccessHandler)
             }
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter::class.java)
 

@@ -34,6 +34,7 @@ dependencies {
 
 	// Security
 	implementation("org.springframework.boot:spring-boot-starter-security")
+	implementation("org.springframework.boot:spring-boot-starter-oauth2-client")
 	implementation("io.jsonwebtoken:jjwt-api:0.12.3")
 	runtimeOnly("io.jsonwebtoken:jjwt-impl:0.12.3")
 	runtimeOnly("io.jsonwebtoken:jjwt-jackson:0.12.3")
@@ -53,6 +54,13 @@ dependencies {
 	// Redis
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
 	implementation("org.springframework.boot:spring-boot-starter-cache")
+
+	// MongoDB
+	implementation("org.springframework.boot:spring-boot-starter-data-mongodb")
+
+	// Kafka
+	implementation("org.springframework.kafka:spring-kafka")
+	testImplementation("org.springframework.kafka:spring-kafka-test")
 
 	// Actuator (Monitoring)
 	implementation("org.springframework.boot:spring-boot-starter-actuator")
