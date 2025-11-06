@@ -66,13 +66,20 @@ services:
       - DB_URL=jdbc:postgresql://postgres:5432/rest_dev
       - DB_USERNAME=postgres
       - DB_PASSWORD=postgres
-      - DB_POOL_SIZE=5
-      - JPA_DDL_AUTO=create-drop
+      - DB_POOL_SIZE=10
+      - JPA_DDL_AUTO=update
       - JPA_SHOW_SQL=true
       - HIBERNATE_FORMAT_SQL=true
       - LOG_LEVEL=INFO
       - APP_LOG_LEVEL=DEBUG
-      - CORS_ALLOWED_ORIGINS=*
+      - CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8080
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_HEALTH_ENABLED=true
+      - JWT_SECRET=your-very-secure-secret-key-that-is-at-least-256-bits-long-for-production-use
+      - JWT_EXPIRATION=86400000
+      - RATE_LIMIT_ENABLED=true
+      - RATE_LIMIT_RPM=100
     depends_on:
       postgres:
         condition: service_healthy
@@ -80,7 +87,7 @@ services:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 3

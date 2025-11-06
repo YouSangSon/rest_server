@@ -1,40 +1,30 @@
 # Git
 .git
 .gitignore
-.gitattributes
 
-# Gradle
-.gradle/
+# Build
 build/
-!gradle/wrapper/gradle-wrapper.jar
+target/
+*.class
 
-# IDE files
+# IDE
 .idea/
 .vscode/
-out/
 *.iml
 *.ipr
 *.iws
 
-# Logs
-logs/
-*.log
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
 
-# Temporary files
-tmp/
-temp/
-
-# OS specific
+# OS
 .DS_Store
 Thumbs.db
 
-# Build output
-bin/
+# Logs
+*.log
 
-# Test results
-test-results/
-
-# Misc
-README.md
-LICENSE
-*.md 
+# Temporary files
+*.tmp
+*.temp
