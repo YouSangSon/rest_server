@@ -1,18 +1,23 @@
 package yousang.rest_server.application.service
 
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.cache.annotation.CacheEvict
 import org.springframework.cache.annotation.Cacheable
 import org.springframework.security.crypto.password.PasswordEncoder
 import org.springframework.stereotype.Service
 import org.springframework.transaction.annotation.Transactional
+import yousang.rest_server.adapter.out.kafka.KafkaProducerService
 import yousang.rest_server.application.ports.`in`.*
 import yousang.rest_server.application.ports.out.UserRepositoryPort
 import yousang.rest_server.config.security.JwtTokenProvider
-import yousang.rest_server.domain.exception.BadRequestException
 import yousang.rest_server.domain.exception.ConflictException
 import yousang.rest_server.domain.exception.NotFoundException
 import yousang.rest_server.domain.exception.UnauthorizedException
 import yousang.rest_server.domain.model.User
+import yousang.rest_server.domain.model.UserEvent
+import yousang.rest_server.domain.model.UserEventType
+import java.time.LocalDateTime
+import java.util.*
 
 @Service
 @Transactional
@@ -21,6 +26,12 @@ class UserService(
     private val passwordEncoder: PasswordEncoder,
     private val jwtTokenProvider: JwtTokenProvider
 ) : RegisterUserUseCase, GetUserUseCase, UpdateUserUseCase, DeleteUserUseCase, AuthenticateUserUseCase {
+
+    @Autowired(required = false)
+    private val kafkaProducerService: KafkaProducerService? = null
+
+    @Autowired(required = false)
+    private val notificationService: NotificationService? = null
 
     override fun register(command: RegisterUserCommand): User {
         // Check if username or email already exists
@@ -38,7 +49,15 @@ class UserService(
             password = command.password
         ).withEncodedPassword(passwordEncoder.encode(command.password))
 
-        return userRepository.save(user)
+        val savedUser = userRepository.save(user)
+
+        // Publish user registered event
+        publishUserEvent(savedUser, UserEventType.USER_REGISTERED)
+
+        // Send welcome email
+        notificationService?.sendWelcomeEmail(savedUser)
+
+        return savedUser
     }
 
     @Cacheable(value = ["users"], key = "#id")
@@ -86,15 +105,26 @@ class UserService(
             email = command.email
         )
 
-        return userRepository.save(updatedUser)
+        val savedUser = userRepository.save(updatedUser)
+
+        // Publish user updated event
+        publishUserEvent(savedUser, UserEventType.USER_UPDATED)
+
+        return savedUser
     }
 
     @CacheEvict(value = ["users"], key = "#id")
     override fun deleteUser(id: Long) {
-        if (userRepository.findById(id) == null) {
-            throw NotFoundException("User with id $id not found")
-        }
+        val user = userRepository.findById(id)
+            ?: throw NotFoundException("User with id $id not found")
+
         userRepository.delete(id)
+
+        // Publish user deleted event
+        publishUserEvent(user, UserEventType.USER_DELETED)
+
+        // Send account deleted email
+        notificationService?.sendAccountDeletedEmail(user)
     }
 
     override fun authenticate(command: LoginCommand): AuthenticationResult {
@@ -113,10 +143,27 @@ class UserService(
         val accessToken = jwtTokenProvider.generateToken(user.username, roles)
         val refreshToken = jwtTokenProvider.generateRefreshToken(user.username)
 
+        // Publish user logged in event
+        publishUserEvent(user, UserEventType.USER_LOGGED_IN)
+
         return AuthenticationResult(
             user = user,
             accessToken = accessToken,
             refreshToken = refreshToken
         )
+    }
+
+    private fun publishUserEvent(user: User, eventType: UserEventType) {
+        kafkaProducerService?.let {
+            val event = UserEvent(
+                eventId = UUID.randomUUID().toString(),
+                eventType = eventType,
+                userId = user.id,
+                username = user.username,
+                email = user.email,
+                timestamp = LocalDateTime.now()
+            )
+            it.publishUserEvent(event)
+        }
     }
 }

@@ -1,14 +1,20 @@
 package yousang.rest_server.config.security
 
 import org.slf4j.LoggerFactory
+import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.security.oauth2.client.userinfo.DefaultOAuth2UserService
 import org.springframework.security.oauth2.client.userinfo.OAuth2UserRequest
 import org.springframework.security.oauth2.core.user.OAuth2User
 import org.springframework.stereotype.Service
+import yousang.rest_server.adapter.out.kafka.KafkaProducerService
 import yousang.rest_server.application.ports.out.UserRepositoryPort
+import yousang.rest_server.application.service.NotificationService
 import yousang.rest_server.domain.model.OAuth2Provider
 import yousang.rest_server.domain.model.Role
 import yousang.rest_server.domain.model.User
+import yousang.rest_server.domain.model.UserEvent
+import yousang.rest_server.domain.model.UserEventType
+import java.time.LocalDateTime
 import java.util.*
 
 /**
@@ -20,6 +26,12 @@ class CustomOAuth2UserService(
 ) : DefaultOAuth2UserService() {
 
     private val logger = LoggerFactory.getLogger(CustomOAuth2UserService::class.java)
+
+    @Autowired(required = false)
+    private val kafkaProducerService: KafkaProducerService? = null
+
+    @Autowired(required = false)
+    private val notificationService: NotificationService? = null
 
     override fun loadUser(userRequest: OAuth2UserRequest): OAuth2User {
         val oAuth2User = super.loadUser(userRequest)
@@ -48,6 +60,7 @@ class CustomOAuth2UserService(
 
     private fun findOrCreateUser(oauth2UserInfo: OAuth2UserInfo): User {
         val email = oauth2UserInfo.getEmail()
+        val provider = oauth2UserInfo.getProvider()
 
         // Try to find existing user by email
         val existingUser = userRepository.findByEmail(email)
@@ -56,7 +69,8 @@ class CustomOAuth2UserService(
             logger.info("Found existing user with email: $email")
             existingUser
         } else {
-            logger.info("Creating new user with email: $email")
+            logger.info("Creating new user with email: $email via OAuth2 provider: $provider")
+
             // Create new user with OAuth2 information
             val newUser = User(
                 username = generateUsername(oauth2UserInfo),
@@ -65,7 +79,31 @@ class CustomOAuth2UserService(
                 roles = setOf(Role.USER),
                 enabled = true
             )
-            userRepository.save(newUser)
+
+            val savedUser = userRepository.save(newUser)
+
+            // Publish OAuth2 linked event
+            publishOAuth2Event(savedUser, provider)
+
+            // Send welcome email
+            notificationService?.sendOAuth2WelcomeEmail(savedUser, provider)
+
+            savedUser
+        }
+    }
+
+    private fun publishOAuth2Event(user: User, provider: OAuth2Provider) {
+        kafkaProducerService?.let {
+            val event = UserEvent(
+                eventId = UUID.randomUUID().toString(),
+                eventType = UserEventType.OAUTH2_LINKED,
+                userId = user.id,
+                username = user.username,
+                email = user.email,
+                timestamp = LocalDateTime.now(),
+                metadata = mapOf("provider" to provider.name)
+            )
+            it.publishUserEvent(event)
         }
     }
 
