@@ -1,0 +1,170 @@
+# EKS Node Group 설정 (AWS CLI/eksctl/Terraform으로 생성)
+# 이 파일은 참고용이며, 실제로는 eksctl이나 Terraform으로 관리
+---
+# eksctl 설정 파일 예시
+# apiVersion: eksctl.io/v1alpha5
+# kind: ClusterConfig
+#
+# metadata:
+#   name: rest-server-cluster
+#   region: ap-northeast-2
+#   version: "1.28"
+#
+# vpc:
+#   cidr: 10.0.0.0/16
+#   nat:
+#     gateway: HighlyAvailable  # NAT Gateway를 각 AZ에 배치
+#
+# # IAM OIDC Provider (IRSA 필수)
+# iam:
+#   withOIDC: true
+#
+# # Managed Node Groups
+# managedNodeGroups:
+#   # 일반 워크로드용 노드 그룹
+#   - name: general-purpose
+#     instanceType: t3.xlarge    # 4 vCPU, 16GB RAM
+#     desiredCapacity: 3
+#     minSize: 3
+#     maxSize: 10
+#     volumeSize: 100            # EBS 볼륨 100GB
+#     volumeType: gp3
+#     privateNetworking: true
+#     ssh:
+#       allow: false             # SSH 비활성화 (보안)
+#     labels:
+#       workload: general
+#     tags:
+#       Environment: production
+#       NodeGroup: general-purpose
+#     iam:
+#       withAddonPolicies:
+#         imageBuilder: true
+#         autoScaler: true       # Cluster Autoscaler
+#         ebs: true              # EBS CSI Driver
+#         efs: true              # EFS CSI Driver
+#         albIngress: true       # ALB Ingress Controller
+#         cloudWatch: true       # CloudWatch Logs
+#
+#   # 고성능 워크로드용 노드 그룹 (Compute Optimized)
+#   - name: compute-optimized
+#     instanceType: c6i.2xlarge  # 8 vCPU, 16GB RAM
+#     desiredCapacity: 2
+#     minSize: 2
+#     maxSize: 20
+#     volumeSize: 100
+#     volumeType: gp3
+#     privateNetworking: true
+#     labels:
+#       workload: compute-intensive
+#     taints:
+#       - key: workload
+#         value: compute-intensive
+#         effect: NoSchedule
+#     tags:
+#       Environment: production
+#       NodeGroup: compute-optimized
+#
+#   # Spot Instance Node Group (비용 절감)
+#   - name: spot-instances
+#     instanceTypes: ["t3.xlarge", "t3a.xlarge"]
+#     desiredCapacity: 2
+#     minSize: 0
+#     maxSize: 10
+#     volumeSize: 100
+#     spot: true                 # Spot Instance
+#     privateNetworking: true
+#     labels:
+#       lifecycle: spot
+#     taints:
+#       - key: lifecycle
+#         value: spot
+#         effect: NoSchedule
+#
+# # Fargate Profiles (서버리스 옵션)
+# fargateProfiles:
+#   - name: rest-server-fargate
+#     selectors:
+#       - namespace: rest-server
+#         labels:
+#           compute-type: fargate
+#
+# # Add-ons
+# addons:
+#   - name: vpc-cni
+#     version: latest
+#   - name: coredns
+#     version: latest
+#   - name: kube-proxy
+#     version: latest
+#   - name: aws-ebs-csi-driver
+#     version: latest
+#     attachPolicyARNs:
+#       - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+#
+# # CloudWatch Logging
+# cloudWatch:
+#   clusterLogging:
+#     enableTypes: ["*"]
+#     logRetentionInDays: 30
+
+---
+# Cluster Autoscaler 배포
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+  annotations:
+    eks.amazonaws.com/role-arn: arn:aws:iam::YOUR_ACCOUNT_ID:role/cluster-autoscaler-role
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cluster-autoscaler
+  namespace: kube-system
+  labels:
+    app: cluster-autoscaler
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: cluster-autoscaler
+  template:
+    metadata:
+      labels:
+        app: cluster-autoscaler
+    spec:
+      serviceAccountName: cluster-autoscaler
+      containers:
+      - image: registry.k8s.io/autoscaling/cluster-autoscaler:v1.28.0
+        name: cluster-autoscaler
+        resources:
+          limits:
+            cpu: 100m
+            memory: 600Mi
+          requests:
+            cpu: 100m
+            memory: 600Mi
+        command:
+        - ./cluster-autoscaler
+        - --v=4
+        - --stderrthreshold=info
+        - --cloud-provider=aws
+        - --skip-nodes-with-local-storage=false
+        - --expander=least-waste
+        - --node-group-auto-discovery=asg:tag=k8s.io/cluster-autoscaler/enabled,k8s.io/cluster-autoscaler/rest-server-cluster
+        - --balance-similar-node-groups
+        - --skip-nodes-with-system-pods=false
+        env:
+        - name: AWS_REGION
+          value: ap-northeast-2
+        volumeMounts:
+        - name: ssl-certs
+          mountPath: /etc/ssl/certs/ca-certificates.crt
+          readOnly: true
+      volumes:
+      - name: ssl-certs
+        hostPath:
+          path: /etc/ssl/certs/ca-bundle.crt

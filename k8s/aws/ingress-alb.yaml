@@ -1,0 +1,110 @@
+# AWS Application Load Balancer (ALB) Ingress
+# AWS Load Balancer Controller 필요
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rest-server-alb
+  namespace: rest-server
+  annotations:
+    # ALB 설정
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internet-facing  # 외부 노출
+    alb.ingress.kubernetes.io/target-type: ip          # IP 모드 (Fargate 사용 시 필수)
+
+    # 리스너 설정
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}, {"HTTPS": 443}]'
+    alb.ingress.kubernetes.io/ssl-redirect: '443'      # HTTP -> HTTPS 리다이렉트
+
+    # ACM 인증서 (AWS Certificate Manager)
+    alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:REGION:ACCOUNT_ID:certificate/CERTIFICATE_ID
+
+    # Health Check
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
+    alb.ingress.kubernetes.io/healthcheck-port: traffic-port
+    alb.ingress.kubernetes.io/healthcheck-protocol: HTTP
+    alb.ingress.kubernetes.io/healthcheck-interval-seconds: '30'
+    alb.ingress.kubernetes.io/healthcheck-timeout-seconds: '5'
+    alb.ingress.kubernetes.io/healthy-threshold-count: '2'
+    alb.ingress.kubernetes.io/unhealthy-threshold-count: '3'
+    alb.ingress.kubernetes.io/success-codes: '200'
+
+    # Target Group Attributes
+    alb.ingress.kubernetes.io/target-group-attributes: |
+      deregistration_delay.timeout_seconds=30,
+      stickiness.enabled=true,
+      stickiness.lb_cookie.duration_seconds=3600,
+      load_balancing.algorithm.type=least_outstanding_requests
+
+    # WAF (Web Application Firewall)
+    alb.ingress.kubernetes.io/wafv2-acl-arn: arn:aws:wafv2:REGION:ACCOUNT_ID:regional/webacl/NAME/ID
+
+    # Shield Advanced (DDoS Protection)
+    alb.ingress.kubernetes.io/shield-advanced-protection: 'true'
+
+    # Tags
+    alb.ingress.kubernetes.io/tags: |
+      Environment=production,
+      Team=backend,
+      Application=rest-server
+
+    # Security Groups
+    alb.ingress.kubernetes.io/security-groups: sg-xxxxxxxxx
+
+    # Subnets (Public Subnets)
+    alb.ingress.kubernetes.io/subnets: subnet-xxxxxxxx,subnet-yyyyyyyy,subnet-zzzzzzzz
+
+    # Load Balancer Attributes
+    alb.ingress.kubernetes.io/load-balancer-attributes: |
+      deletion_protection.enabled=true,
+      access_logs.s3.enabled=true,
+      access_logs.s3.bucket=your-alb-logs-bucket,
+      access_logs.s3.prefix=rest-server,
+      idle_timeout.timeout_seconds=60
+
+    # Connection Logs (선택사항)
+    alb.ingress.kubernetes.io/connection-logs-enabled: 'true'
+    alb.ingress.kubernetes.io/connection-logs-s3-bucket: your-connection-logs-bucket
+    alb.ingress.kubernetes.io/connection-logs-s3-prefix: rest-server-connections
+
+spec:
+  rules:
+  - host: api.yourdomain.com
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: rest-server
+            port:
+              number: 8080
+
+---
+# Internal ALB (VPC 내부 통신용)
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: rest-server-alb-internal
+  namespace: rest-server
+  annotations:
+    kubernetes.io/ingress.class: alb
+    alb.ingress.kubernetes.io/scheme: internal        # 내부 전용
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/listen-ports: '[{"HTTP": 80}]'
+    alb.ingress.kubernetes.io/healthcheck-path: /actuator/health
+    alb.ingress.kubernetes.io/subnets: subnet-private1,subnet-private2,subnet-private3
+    alb.ingress.kubernetes.io/tags: Environment=production,Type=internal
+
+spec:
+  rules:
+  - host: api.internal.yourdomain.com
+    http:
+      paths:
+      - path: /actuator
+        pathType: Prefix
+        backend:
+          service:
+            name: rest-server
+            port:
+              number: 8080

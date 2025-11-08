@@ -1,0 +1,46 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-server
+  namespace: rest-server
+  labels:
+    app: rest-server
+  annotations:
+    service.beta.kubernetes.io/aws-load-balancer-type: "nlb"  # AWS NLB (선택사항)
+spec:
+  type: ClusterIP  # Ingress를 통해 외부 노출
+  sessionAffinity: ClientIP  # 세션 고정 (JWT 사용 시 불필요할 수 있음)
+  sessionAffinityConfig:
+    clientIP:
+      timeoutSeconds: 10800  # 3시간
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  - name: actuator
+    port: 8081
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: rest-server
+
+---
+# Headless Service (StatefulSet용, 선택사항)
+apiVersion: v1
+kind: Service
+metadata:
+  name: rest-server-headless
+  namespace: rest-server
+  labels:
+    app: rest-server
+spec:
+  type: ClusterIP
+  clusterIP: None  # Headless
+  ports:
+  - name: http
+    port: 8080
+    targetPort: 8080
+    protocol: TCP
+  selector:
+    app: rest-server

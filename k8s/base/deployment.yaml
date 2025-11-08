@@ -1,0 +1,171 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: rest-server
+  namespace: rest-server
+  labels:
+    app: rest-server
+    version: v1
+spec:
+  replicas: 3  # 멀티 포드: 최소 3개
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 2        # 업데이트 시 최대 2개 추가 생성
+      maxUnavailable: 1  # 업데이트 시 최대 1개 중단
+  selector:
+    matchLabels:
+      app: rest-server
+  template:
+    metadata:
+      labels:
+        app: rest-server
+        version: v1
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+        prometheus.io/path: "/actuator/prometheus"
+    spec:
+      # Security Context
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 1000
+        fsGroup: 1000
+
+      # Service Account (for RBAC)
+      serviceAccountName: rest-server
+
+      # Pod Anti-Affinity (다른 노드에 분산 배치)
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+          - weight: 100
+            podAffinityTerm:
+              labelSelector:
+                matchExpressions:
+                - key: app
+                  operator: In
+                  values:
+                  - rest-server
+              topologyKey: kubernetes.io/hostname
+
+      # Init Containers (DB 연결 대기)
+      initContainers:
+      - name: wait-for-postgres
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z postgresql 5432; do echo waiting for postgres; sleep 2; done;']
+      - name: wait-for-redis
+        image: busybox:1.36
+        command: ['sh', '-c', 'until nc -z redis 6379; do echo waiting for redis; sleep 2; done;']
+
+      containers:
+      - name: rest-server
+        image: rest-server:latest  # 실제 이미지로 변경
+        imagePullPolicy: IfNotPresent
+
+        ports:
+        - name: http
+          containerPort: 8080
+          protocol: TCP
+        - name: actuator
+          containerPort: 8080
+          protocol: TCP
+
+        # Environment Variables from ConfigMap
+        envFrom:
+        - configMapRef:
+            name: rest-server-config
+        - secretRef:
+            name: rest-server-secret
+
+        # Resource Limits (Virtual Threads 사용으로 CPU/Memory 효율적)
+        resources:
+          requests:
+            cpu: "500m"      # 0.5 코어
+            memory: "1Gi"    # 1GB
+          limits:
+            cpu: "2000m"     # 2 코어
+            memory: "2Gi"    # 2GB
+
+        # Liveness Probe (컨테이너 살아있는지 확인)
+        livenessProbe:
+          httpGet:
+            path: /actuator/health/liveness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 60   # 60초 후 시작
+          periodSeconds: 10         # 10초마다 확인
+          timeoutSeconds: 5         # 5초 타임아웃
+          successThreshold: 1
+          failureThreshold: 3       # 3번 실패 시 재시작
+
+        # Readiness Probe (트래픽 받을 준비 확인)
+        readinessProbe:
+          httpGet:
+            path: /actuator/health/readiness
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 30   # 30초 후 시작
+          periodSeconds: 5          # 5초마다 확인
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 3       # 3번 실패 시 트래픽 차단
+
+        # Startup Probe (애플리케이션 시작 확인)
+        startupProbe:
+          httpGet:
+            path: /actuator/health
+            port: 8080
+            scheme: HTTP
+          initialDelaySeconds: 10
+          periodSeconds: 5
+          timeoutSeconds: 3
+          successThreshold: 1
+          failureThreshold: 30      # 최대 150초 (5*30) 대기
+
+        # Lifecycle Hooks
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]  # Graceful shutdown
+
+        # Security Context
+        securityContext:
+          allowPrivilegeEscalation: false
+          readOnlyRootFilesystem: false
+          runAsNonRoot: true
+          runAsUser: 1000
+          capabilities:
+            drop:
+            - ALL
+
+        # Volume Mounts (로그 등)
+        volumeMounts:
+        - name: logs
+          mountPath: /app/logs
+        - name: tmp
+          mountPath: /tmp
+
+      # Volumes
+      volumes:
+      - name: logs
+        emptyDir: {}
+      - name: tmp
+        emptyDir: {}
+
+      # Termination Grace Period (Graceful Shutdown)
+      terminationGracePeriodSeconds: 30
+
+      # DNS Config
+      dnsPolicy: ClusterFirst
+
+      # Restart Policy
+      restartPolicy: Always
+
+---
+# ServiceAccount for RBAC
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: rest-server
+  namespace: rest-server

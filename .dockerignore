@@ -1,11 +1,14 @@
 # Git
 .git
 .gitignore
+.gitattributes
 
-# Build
+# Build outputs
 build/
 target/
-*.class
+out/
+.gradle/
+bin/
 
 # IDE
 .idea/
@@ -13,18 +16,45 @@ target/
 *.iml
 *.ipr
 *.iws
+.project
+.settings/
+.classpath
 
-# Gradle
-.gradle/
-!gradle/wrapper/gradle-wrapper.jar
+# Logs
+*.log
+logs/
+
+# Test
+*.test
+*.spec
+
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes
+k8s/
+
+# Documentation
+*.md
+docs/
+README*
+
+# Environment
+.env
+.env.*
+*.env
 
 # OS
 .DS_Store
 Thumbs.db
 
-# Logs
-*.log
-
 # Temporary files
 *.tmp
-*.temp
+*.bak
+*.swp
+*~
+
+# Keep Gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar

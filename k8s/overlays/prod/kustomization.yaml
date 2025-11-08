@@ -1,0 +1,52 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+
+namespace: rest-server
+
+bases:
+- ../../base
+
+nameSuffix: -prod
+
+# Production 환경 설정
+patches:
+- patch: |-
+    apiVersion: apps/v1
+    kind: Deployment
+    metadata:
+      name: rest-server
+    spec:
+      replicas: 5  # Prod는 5개로 시작
+      template:
+        spec:
+          containers:
+          - name: rest-server
+            resources:
+              requests:
+                cpu: "1000m"
+                memory: "2Gi"
+              limits:
+                cpu: "4000m"
+                memory: "4Gi"
+
+# ConfigMap Override
+configMapGenerator:
+- name: rest-server-config
+  behavior: merge
+  literals:
+  - SPRING_PROFILES_ACTIVE=prod
+  - LOG_LEVEL=WARN
+  - APP_LOG_LEVEL=INFO
+  - JPA_SHOW_SQL=false
+  - JPA_DDL_AUTO=validate  # Prod에서는 validate만
+  - RATE_LIMIT_RPM=100
+
+# HPA Override
+- patch: |-
+    apiVersion: autoscaling/v2
+    kind: HorizontalPodAutoscaler
+    metadata:
+      name: rest-server-hpa
+    spec:
+      minReplicas: 5
+      maxReplicas: 50  # 최대 50개까지 확장
