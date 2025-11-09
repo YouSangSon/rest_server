@@ -38,6 +38,13 @@ class TelegramBotAdapter(
     // 사용자별 자동 매매 활성화 상태 (실제로는 DB나 Redis에 저장)
     private val autoTradingStatus = mutableMapOf<Long, Boolean>()
 
+    // TradingScheduler는 순환 참조 방지를 위해 lazy 초기화
+    private var tradingScheduler: yousang.rest_server.application.scheduler.TradingScheduler? = null
+
+    fun setTradingScheduler(scheduler: yousang.rest_server.application.scheduler.TradingScheduler) {
+        this.tradingScheduler = scheduler
+    }
+
     // ==================== Notification Implementation ====================
 
     override fun sendNotification(userId: Long, title: String, message: String) {
@@ -251,6 +258,7 @@ class TelegramBotAdapter(
         try {
             // 모든 활성 전략 실행 시작
             autoTradingStatus[userId] = true
+            tradingScheduler?.enableAutoTradingForUser(userId)
 
             val strategies = tradingStrategyService.getActiveStrategies(userId)
             if (strategies.isEmpty()) {
@@ -267,6 +275,7 @@ class TelegramBotAdapter(
                 |${strategies.joinToString("\n") { "- ${it.name} (${it.strategyType})" }}
                 |
                 |실시간으로 시장을 모니터링하고 거래 신호를 생성합니다.
+                |스케줄러가 1분마다 전략을 자동 실행합니다.
             """.trimMargin()
             )
         } catch (e: Exception) {
@@ -276,6 +285,7 @@ class TelegramBotAdapter(
 
     private fun handleAutoTradeStop(chatId: Long, userId: Long) {
         autoTradingStatus[userId] = false
+        tradingScheduler?.disableAutoTradingForUser(userId)
         sendMessage(
             chatId,
             """

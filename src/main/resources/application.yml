@@ -133,6 +133,29 @@ rate-limit:
   enabled: ${RATE_LIMIT_ENABLED:true}
   requests-per-minute: ${RATE_LIMIT_RPM:100}
 
+# Trading Bot Configuration
+telegram:
+  bot-token: ${TELEGRAM_BOT_TOKEN:}
+  base-url: ${TELEGRAM_BASE_URL:https://api.telegram.org}
+
+slack:
+  webhook-url: ${SLACK_WEBHOOK_URL:}
+
+# External API Configuration
+newsapi:
+  api-key: ${NEWSAPI_KEY:}
+  base-url: ${NEWSAPI_BASE_URL:https://newsapi.org/v2}
+
+binance:
+  api-key: ${BINANCE_API_KEY:}
+  secret-key: ${BINANCE_SECRET_KEY:}
+  base-url: ${BINANCE_BASE_URL:https://api.binance.com}
+
+upbit:
+  access-key: ${UPBIT_ACCESS_KEY:}
+  secret-key: ${UPBIT_SECRET_KEY:}
+  base-url: ${UPBIT_BASE_URL:https://api.upbit.com}
+
 # 공통 로깅 설정
 logging:
   level:
