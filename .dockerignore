@@ -3,38 +3,58 @@
 .gitignore
 .gitattributes
 
-# Gradle
-.gradle/
+# Build outputs
 build/
-!gradle/wrapper/gradle-wrapper.jar
+target/
+out/
+.gradle/
+bin/
 
-# IDE files
+# IDE
 .idea/
 .vscode/
-out/
 *.iml
 *.ipr
 *.iws
+.project
+.settings/
+.classpath
 
 # Logs
-logs/
 *.log
+logs/
 
-# Temporary files
-tmp/
-temp/
+# Test
+*.test
+*.spec
 
-# OS specific
+# Docker
+Dockerfile*
+docker-compose*.yml
+.dockerignore
+
+# Kubernetes
+k8s/
+
+# Documentation
+*.md
+docs/
+README*
+
+# Environment
+.env
+.env.*
+*.env
+
+# OS
 .DS_Store
 Thumbs.db
 
-# Build output
-bin/
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
 
-# Test results
-test-results/
-
-# Misc
-README.md
-LICENSE
-*.md 
+# Keep Gradle wrapper
+!gradle/wrapper/gradle-wrapper.jar

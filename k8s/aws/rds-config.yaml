@@ -1,0 +1,135 @@
+# AWS RDS 연동 설정
+# RDS는 Terraform/CloudFormation으로 프로비저닝하고, K8s에서는 연결만 설정
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rds-config
+  namespace: rest-server
+data:
+  # RDS Endpoint
+  DB_HOST: "rest-server-db.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com"
+  DB_PORT: "5432"
+  DB_NAME: "rest_prod"
+  DB_URL: "jdbc:postgresql://rest-server-db.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com:5432/rest_prod"
+
+  # Connection Pool (RDS에 최적화)
+  DB_POOL_SIZE: "50"           # RDS max_connections의 50% 정도
+  DB_MIN_IDLE: "10"
+  DB_IDLE_TIMEOUT: "30000"
+  DB_CONN_TIMEOUT: "10000"
+  DB_MAX_LIFETIME: "1800000"   # 30분 (RDS 연결 타임아웃 대비)
+
+  # SSL/TLS 설정 (RDS는 기본적으로 SSL 지원)
+  DB_SSL_MODE: "require"
+
+---
+# RDS IAM Authentication 사용 시
+# (비밀번호 대신 IAM Role로 인증)
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: rds-iam-config
+  namespace: rest-server
+data:
+  DB_HOST: "rest-server-db.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com"
+  DB_PORT: "5432"
+  DB_NAME: "rest_prod"
+  DB_SSL_MODE: "require"
+  # IAM Authentication 활성화
+  DB_IAM_AUTH_ENABLED: "true"
+  # JDBC URL with IAM
+  DB_URL: "jdbc:postgresql://rest-server-db.xxxxxxxxx.ap-northeast-2.rds.amazonaws.com:5432/rest_prod?ssl=true&sslmode=require"
+
+---
+# AWS ElastiCache (Redis) 연동
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: elasticache-config
+  namespace: rest-server
+data:
+  # ElastiCache Cluster Endpoint (Cluster Mode Disabled)
+  REDIS_HOST: "rest-server-redis.xxxxxx.ng.0001.apn2.cache.amazonaws.com"
+  REDIS_PORT: "6379"
+
+  # Cluster Mode Enabled인 경우 Configuration Endpoint
+  # REDIS_CLUSTER_NODES: "rest-server-redis.xxxxxx.clustercfg.apn2.cache.amazonaws.com:6379"
+
+  # TLS 설정 (ElastiCache는 TLS 지원)
+  REDIS_SSL: "true"
+  REDIS_TLS_ENABLED: "true"
+
+  # Connection Pool
+  REDIS_POOL_MAX_ACTIVE: "20"
+  REDIS_POOL_MAX_IDLE: "10"
+  REDIS_POOL_MIN_IDLE: "5"
+
+---
+# AWS MSK (Managed Kafka) 연동
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: msk-config
+  namespace: rest-server
+data:
+  # MSK Bootstrap Servers (여러 브로커)
+  KAFKA_BOOTSTRAP_SERVERS: |
+    b-1.rest-server-msk.xxxxxx.kafka.ap-northeast-2.amazonaws.com:9092,
+    b-2.rest-server-msk.xxxxxx.kafka.ap-northeast-2.amazonaws.com:9092,
+    b-3.rest-server-msk.xxxxxx.kafka.ap-northeast-2.amazonaws.com:9092
+
+  # TLS/SSL 설정 (MSK는 TLS 지원)
+  KAFKA_SECURITY_PROTOCOL: "SSL"
+
+  # IAM Authentication 사용 시
+  # KAFKA_SECURITY_PROTOCOL: "SASL_SSL"
+  # KAFKA_SASL_MECHANISM: "AWS_MSK_IAM"
+  # KAFKA_SASL_JAAS_CONFIG: "software.amazon.msk.auth.iam.IAMLoginModule required;"
+  # KAFKA_SASL_CLIENT_CALLBACK_HANDLER_CLASS: "software.amazon.msk.auth.iam.IAMClientCallbackHandler"
+
+---
+# AWS DocumentDB (MongoDB 호환) 연동
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: documentdb-config
+  namespace: rest-server
+data:
+  # DocumentDB Cluster Endpoint
+  MONGODB_URI: "mongodb://rest-server-docdb.cluster-xxxxxxxxx.ap-northeast-2.docdb.amazonaws.com:27017/rest_server?ssl=true&replicaSet=rs0&readPreference=secondaryPreferred&retryWrites=false"
+  MONGODB_DATABASE: "rest_server"
+
+  # TLS Certificate (DocumentDB는 TLS 필수)
+  MONGODB_SSL_ENABLED: "true"
+  MONGODB_TLS_ALLOW_INVALID_HOSTNAMES: "true"  # Self-signed cert 사용 시
+
+---
+# Terraform/CloudFormation으로 생성할 AWS 리소스:
+#
+# 1. RDS PostgreSQL (Multi-AZ)
+#    - Instance Type: db.t3.large or db.r6g.xlarge
+#    - Storage: GP3 SSD, 100GB+
+#    - Backup: 자동 백업 7일
+#    - Encryption: KMS 암호화
+#    - IAM Authentication: 활성화
+#    - Performance Insights: 활성화
+#
+# 2. ElastiCache Redis (Cluster Mode)
+#    - Node Type: cache.r6g.large
+#    - Replicas: 2개 (Multi-AZ)
+#    - Encryption: In-transit, At-rest
+#    - Auto-Failover: 활성화
+#
+# 3. MSK Kafka (Serverless 또는 Provisioned)
+#    - Kafka Version: 3.5.1
+#    - Brokers: 3개 (Multi-AZ)
+#    - Storage: GP3, Auto-scaling
+#    - Encryption: TLS
+#    - IAM Authentication: 활성화
+#
+# 4. DocumentDB (MongoDB 호환)
+#    - Instance Type: db.t3.medium
+#    - Replicas: 2개
+#    - Encryption: 활성화
+#    - Backup: 자동 백업 7일
