@@ -128,6 +128,22 @@ services:
       - postgres
     restart: unless-stopped
 
+  # ML Service (Python FastAPI)
+  ml-service:
+    build: ./ml_service
+    container_name: rest-ml-service
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHONUNBUFFERED=1
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
   # REST Server 애플리케이션
   rest-server:
     build: .
@@ -153,10 +169,18 @@ services:
       - MONGODB_DATABASE=rest_server
       - KAFKA_BOOTSTRAP_SERVERS=kafka:29092
       - KAFKA_CONSUMER_GROUP=rest-server-group
+      - ML_SERVICE_URL=http://ml-service:8000
       - JWT_SECRET=your-very-secure-secret-key-that-is-at-least-256-bits-long-for-production-use
       - JWT_EXPIRATION=86400000
       - RATE_LIMIT_ENABLED=true
       - RATE_LIMIT_RPM=100
+      - TELEGRAM_BOT_TOKEN=${TELEGRAM_BOT_TOKEN:-}
+      - SLACK_WEBHOOK_URL=${SLACK_WEBHOOK_URL:-}
+      - NEWSAPI_KEY=${NEWSAPI_KEY:-}
+      - BINANCE_API_KEY=${BINANCE_API_KEY:-}
+      - BINANCE_SECRET_KEY=${BINANCE_SECRET_KEY:-}
+      - UPBIT_ACCESS_KEY=${UPBIT_ACCESS_KEY:-}
+      - UPBIT_SECRET_KEY=${UPBIT_SECRET_KEY:-}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID:-}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET:-}
       - NAVER_CLIENT_ID=${NAVER_CLIENT_ID:-}
@@ -171,6 +195,8 @@ services:
       mongodb:
         condition: service_healthy
       kafka:
+        condition: service_healthy
+      ml-service:
         condition: service_healthy
     restart: unless-stopped
     healthcheck:
