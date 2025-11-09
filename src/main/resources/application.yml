@@ -156,6 +156,11 @@ upbit:
   secret-key: ${UPBIT_SECRET_KEY:}
   base-url: ${UPBIT_BASE_URL:https://api.upbit.com}
 
+# ML Service
+ml:
+  service:
+    url: ${ML_SERVICE_URL:http://localhost:8000}
+
 # 공통 로깅 설정
 logging:
   level:
