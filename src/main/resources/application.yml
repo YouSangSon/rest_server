@@ -161,6 +161,12 @@ ml:
   service:
     url: ${ML_SERVICE_URL:http://localhost:8000}
 
+# Database Service Configuration
+database-service:
+  url: ${DATABASE_SERVICE_URL:http://localhost:8080}
+  enabled: ${DATABASE_SERVICE_ENABLED:true}
+  timeout: ${DATABASE_SERVICE_TIMEOUT:30000}
+
 # 공통 로깅 설정
 logging:
   level:
