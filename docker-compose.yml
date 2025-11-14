@@ -144,6 +144,33 @@ services:
       retries: 3
       start_period: 30s
 
+  # Database Service (Optional - comment out if using external database-service)
+  # For full setup, clone: https://github.com/YouSangSon/database-service
+  # database-service:
+  #   image: yousangson/database-service:latest
+  #   container_name: rest-database-service
+  #   ports:
+  #     - "8081:8080"
+  #   environment:
+  #     - MONGODB_URI=mongodb://mongodb:27017
+  #     - POSTGRES_URI=postgresql://postgres:postgres@postgres:5432/rest_dev
+  #     - MYSQL_URI=mysql://root:root@mysql:3306/rest_dev
+  #     - REDIS_URI=redis://redis:6379
+  #     - KAFKA_BROKERS=kafka:29092
+  #     - CDC_ENABLED=true
+  #   depends_on:
+  #     - postgres
+  #     - mongodb
+  #     - redis
+  #     - kafka
+  #   restart: unless-stopped
+  #   healthcheck:
+  #     test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/health"]
+  #     interval: 30s
+  #     timeout: 10s
+  #     retries: 3
+  #     start_period: 40s
+
   # REST Server 애플리케이션
   rest-server:
     build: .
@@ -187,6 +214,8 @@ services:
       - NAVER_CLIENT_SECRET=${NAVER_CLIENT_SECRET:-}
       - KAKAO_CLIENT_ID=${KAKAO_CLIENT_ID:-}
       - KAKAO_CLIENT_SECRET=${KAKAO_CLIENT_SECRET:-}
+      - DATABASE_SERVICE_URL=${DATABASE_SERVICE_URL:-http://database-service:8080}
+      - DATABASE_SERVICE_ENABLED=${DATABASE_SERVICE_ENABLED:-true}
     depends_on:
       postgres:
         condition: service_healthy
