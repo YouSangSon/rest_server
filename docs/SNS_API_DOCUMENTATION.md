@@ -634,7 +634,79 @@ For real-time features, consider:
 
 ---
 
+## 🏗️ Implementation Details
+
+### Database Integration
+
+This API uses the **Database Service** for unified database access across PostgreSQL and MongoDB.
+
+**Architecture:**
+```
+SNS Controllers → Services → Repository Adapters → Database Service → DB (PostgreSQL/MongoDB)
+```
+
+**Repository Adapters (17 total):**
+- PostgreSQL: Users, Portfolios, Holdings, Trades, Follows, Conversations (7 adapters)
+- MongoDB: Posts, Comments, Likes, Messages, Notifications, Stories (10 adapters)
+
+**See:** [SNS Repository Adapters Guide](./SNS_REPOSITORY_ADAPTERS.md)
+
+### Key Technologies
+
+- **Backend:** Kotlin 1.9+ + Spring Boot 3.2
+- **JDK:** Java 21 (Virtual Threads)
+- **Databases:** PostgreSQL 15+, MongoDB 7+
+- **Cache:** Redis 7+
+- **Events:** Kafka 7.5+
+- **Authentication:** JWT (HS512)
+- **API Docs:** OpenAPI 3.0 / Swagger
+
+### Database Strategy
+
+**PostgreSQL** (Structured Data):
+- User profiles and relationships
+- Investment portfolios and financial data
+- Conversations (relational queries)
+
+**MongoDB** (Document Data):
+- Posts (images, hashtags arrays)
+- Comments (nested replies)
+- Notifications (flexible JSON payloads)
+- Messages, Stories
+
+### Performance Features
+
+**Caching:**
+- Redis cache for frequently accessed data
+- In-memory caching for user sessions
+
+**Pagination:**
+- All list endpoints support limit/offset
+- Default: 20 items per page
+- Maximum: 100 items per page
+
+**Indexing:**
+- PostgreSQL: B-tree indexes on foreign keys, email, username
+- MongoDB: Compound indexes on (userId + createdAt), hashtags
+
+**Optimization:**
+- Database connection pooling (HikariCP)
+- Bulk insert operations via Database Service
+- Query result streaming for large datasets
+
+---
+
 ## 📚 Additional Resources
+
+### Documentation
+
+- **Complete Architecture:** [COMPLETE_ARCHITECTURE.md](./COMPLETE_ARCHITECTURE.md)
+- **Repository Adapters:** [SNS_REPOSITORY_ADAPTERS.md](./SNS_REPOSITORY_ADAPTERS.md)
+- **Database Schema:** [DATABASE_SCHEMA.md](./DATABASE_SCHEMA.md)
+- **Deployment Guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
+- **Database Service Setup:** [DATABASE_SERVICE_SETUP.md](./DATABASE_SERVICE_SETUP.md)
+
+### External Resources
 
 - **Original Project:** [https://github.com/YouSangSon/sns_project](https://github.com/YouSangSon/sns_project)
 - **Database Service:** [https://github.com/YouSangSon/database-service](https://github.com/YouSangSon/database-service)
@@ -642,6 +714,9 @@ For real-time features, consider:
 
 ---
 
-**Last Updated:** 2025-11-13
+**Last Updated:** 2025-11-14
 **API Version:** 1.0.0
 **Status:** ✅ Production Ready
+**Total Endpoints:** 37+
+**Repository Adapters:** 17
+**Databases:** PostgreSQL + MongoDB
