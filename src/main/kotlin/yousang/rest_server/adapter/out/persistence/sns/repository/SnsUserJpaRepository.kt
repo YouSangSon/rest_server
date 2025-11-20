@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import yousang.rest_server.adapter.out.persistence.sns.entity.SnsUserEntity
 
 @Repository
-interface SnsUserJpaRepository : JpaRepository<SnsUserEntity, Long> {
+interface SnsUserJpaRepository : JpaRepository<SnsUserEntity, Long>, SnsUserCustomRepository {
     fun findByEmail(email: String): SnsUserEntity?
     fun findByUsername(username: String): SnsUserEntity?
     fun existsByEmail(email: String): Boolean

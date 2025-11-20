@@ -212,6 +212,7 @@ http://localhost:8080/swagger-ui.html
 
 ### 기술 구현
 - [SNS Repository Adapters](docs/SNS_REPOSITORY_ADAPTERS.md) - 17개 Repository Adapter 구현 가이드
+- [Raw Query 가이드](docs/RAW_QUERY_GUIDE.md) - ⭐ JdbcTemplate/MongoTemplate Raw Query 실행 가이드
 - [Database Service Integration](docs/DATABASE_SERVICE_INTEGRATION.md) - DB 서비스 통합 완료 보고서
 
 ### 설정 가이드

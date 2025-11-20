@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository
 import yousang.rest_server.adapter.out.persistence.sns.document.PostDocument
 
 @Repository
-interface PostMongoRepository : MongoRepository<PostDocument, Long> {
+interface PostMongoRepository : MongoRepository<PostDocument, Long>, PostCustomRepository {
 
     @Query("{ 'userId': ?0, 'isHidden': false }")
     fun findByUserId(userId: Long, pageable: Pageable): List<PostDocument>
