@@ -1,13 +1,11 @@
 package yousang.rest_server.adapter.out.persistence.sns.repository
 
 import com.fasterxml.jackson.databind.ObjectMapper
-import com.mongodb.client.model.Filters
 import org.bson.Document
 import org.springframework.data.mongodb.core.MongoTemplate
 import org.springframework.data.mongodb.core.aggregation.Aggregation
 import org.springframework.data.mongodb.core.query.Criteria
 import org.springframework.data.mongodb.core.query.Query
-import org.springframework.stereotype.Repository
 import yousang.rest_server.adapter.out.persistence.sns.document.PostDocument
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -15,9 +13,11 @@ import java.time.format.DateTimeFormatter
 /**
  * Post 커스텀 리포지토리 구현
  * MongoTemplate을 사용한 Raw Query 및 Aggregation 실행
+ *
+ * Spring Data MongoDB는 이 클래스를 자동으로 발견합니다.
+ * 네이밍 규칙: {RepositoryName}Impl
  */
-@Repository
-class PostCustomRepositoryImpl(
+class PostMongoRepositoryImpl(
     private val mongoTemplate: MongoTemplate,
     private val objectMapper: ObjectMapper
 ) : PostCustomRepository {

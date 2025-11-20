@@ -3,16 +3,18 @@ package yousang.rest_server.adapter.out.persistence.sns.repository
 import jakarta.persistence.EntityManager
 import jakarta.persistence.PersistenceContext
 import org.springframework.jdbc.core.JdbcTemplate
-import org.springframework.stereotype.Repository
 import yousang.rest_server.adapter.out.persistence.sns.entity.SnsUserEntity
 import java.sql.ResultSet
 
 /**
  * SNS 사용자 커스텀 리포지토리 구현
  * JdbcTemplate과 EntityManager를 사용한 Raw Query 실행
+ *
+ * Spring Data JPA는 이 클래스를 자동으로 발견합니다.
+ * 네이밍 규칙: {RepositoryName}Impl
+ * @Repository 어노테이션 불필요 - Spring Data가 자동으로 빈 생성
  */
-@Repository
-class SnsUserCustomRepositoryImpl(
+class SnsUserJpaRepositoryImpl(
     private val jdbcTemplate: JdbcTemplate
 ) : SnsUserCustomRepository {
 
