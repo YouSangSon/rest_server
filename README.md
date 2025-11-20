@@ -43,11 +43,15 @@ Clean Architecture, Domain-Driven Design (DDD), Test-Driven Development (TDD) �
 - ✅ **BCrypt 비밀번호 암호화**
 
 ### 📊 데이터 저장소
-- ✅ **Database Service** - 통합 멀티 데이터베이스 API
 - ✅ **PostgreSQL** - 관계형 데이터 (Users, Portfolios, Holdings, Trades)
+  - Spring Data JPA로 직접 연결
+  - HikariCP 커넥션 풀링
 - ✅ **MongoDB** - 비정형 데이터 (Posts, Messages, Notifications, Stories)
+  - Spring Data MongoDB로 직접 연결
+  - 자동 인덱싱 및 샤딩 지원
 - ✅ **Redis** - 캐싱, 세션, 실시간 데이터
-- ✅ **JPA/Hibernate** + **Exposed ORM**
+  - Spring Data Redis 통합
+- ✅ **JPA/Hibernate** + **Exposed ORM** + **Spring Data**
 
 ### 📨 메시징 & 이벤트
 - ✅ **Apache Kafka** - 이벤트 스트리밍
@@ -208,6 +212,7 @@ http://localhost:8080/swagger-ui.html
 
 ### 기술 구현
 - [SNS Repository Adapters](docs/SNS_REPOSITORY_ADAPTERS.md) - 17개 Repository Adapter 구현 가이드
+- [Raw Query 가이드](docs/RAW_QUERY_GUIDE.md) - ⭐ JdbcTemplate/MongoTemplate Raw Query 실행 가이드
 - [Database Service Integration](docs/DATABASE_SERVICE_INTEGRATION.md) - DB 서비스 통합 완료 보고서
 
 ### 설정 가이드
