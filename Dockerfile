@@ -21,7 +21,7 @@ RUN gradle bootJar --no-daemon --quiet -x test && \
     java -Djarmode=layertools -jar build/libs/*.jar list
 
 # Stage 2: Runtime (Production)
-FROM eclipse-temurin:21-jre-alpine
+FROM eclipse-temurin:25-jre-alpine
 
 # Install required tools for K8s
 RUN apk add --no-cache \
