@@ -36,8 +36,8 @@ dependencies {
 	implementation("org.springframework.boot:spring-boot-starter-websocket")
 
 	// Kotlin Coroutines
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.0")
-	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.8.0")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
+	implementation("org.jetbrains.kotlinx:kotlinx-coroutines-reactor:1.10.2")
 
 	// Security
 	implementation("org.springframework.boot:spring-boot-starter-security")
