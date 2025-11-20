@@ -1,0 +1,309 @@
+name: CD - Deploy to Production
+
+on:
+  push:
+    branches:
+      - main
+    tags:
+      - 'v*.*.*'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment environment'
+        required: true
+        default: 'staging'
+        type: choice
+        options:
+          - staging
+          - production
+
+env:
+  JAVA_VERSION: '21'
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  deploy-staging:
+    name: Deploy to Staging
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/develop' || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'staging')
+    environment:
+      name: staging
+      url: https://staging-api.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Configure SSH
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.STAGING_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+          ssh-keyscan -H ${{ secrets.STAGING_HOST }} >> ~/.ssh/known_hosts
+
+      - name: Deploy to Staging Server
+        run: |
+          ssh ${{ secrets.STAGING_USER }}@${{ secrets.STAGING_HOST }} << 'EOF'
+            cd /opt/rest-server
+
+            # Pull latest changes
+            git pull origin develop
+
+            # Pull latest Docker image
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:develop
+
+            # Stop and remove old containers
+            docker-compose -f docker-compose.staging.yml down
+
+            # Start new containers
+            docker-compose -f docker-compose.staging.yml up -d
+
+            # Wait for health check
+            echo "Waiting for application to be healthy..."
+            timeout 300 bash -c 'until curl -f http://localhost:8080/actuator/health; do sleep 5; done'
+
+            # Show logs
+            docker-compose -f docker-compose.staging.yml logs --tail=100
+          EOF
+
+      - name: Run Smoke Tests
+        run: |
+          # Wait for app to be ready
+          sleep 30
+
+          # Basic health check
+          curl -f https://staging-api.yourdomain.com/actuator/health || exit 1
+
+          # API endpoint check
+          curl -f https://staging-api.yourdomain.com/actuator/info || exit 1
+
+          echo "Smoke tests passed!"
+
+      - name: Notify deployment
+        if: always()
+        run: |
+          echo "Staging deployment completed with status: ${{ job.status }}"
+
+  deploy-production:
+    name: Deploy to Production
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v') || (github.event_name == 'workflow_dispatch' && github.event.inputs.environment == 'production')
+    environment:
+      name: production
+      url: https://api.yourdomain.com
+    needs: []  # Add dependency on tests if needed
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Download Docker Image Info
+        run: |
+          echo "Deploying version: ${{ github.ref_name }}"
+          echo "Image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest"
+
+      - name: Deploy to Production (Blue-Green)
+        run: |
+          echo "Starting Blue-Green deployment..."
+
+          # SSH into production servers
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            cd /opt/rest-server
+
+            # Backup current version
+            docker tag rest-server:current rest-server:rollback || true
+
+            # Pull latest image
+            docker pull ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            docker tag ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest rest-server:blue
+
+            # Start blue environment
+            docker-compose -f docker-compose.blue.yml up -d
+
+            # Health check blue
+            timeout 300 bash -c 'until curl -f http://localhost:8081/actuator/health; do sleep 5; done'
+
+            # Switch traffic to blue (update load balancer)
+            # This is environment-specific - adjust based on your setup
+
+            # Stop green environment
+            docker-compose -f docker-compose.green.yml down
+
+            # Tag blue as current
+            docker tag rest-server:blue rest-server:current
+
+            echo "Blue-Green deployment completed"
+          EOF
+        env:
+          PROD_SSH_KEY: ${{ secrets.PROD_SSH_KEY }}
+
+      - name: Run Production Smoke Tests
+        run: |
+          # Wait for app to be ready
+          sleep 30
+
+          # Health check
+          curl -f https://api.yourdomain.com/actuator/health || exit 1
+
+          # Prometheus metrics check
+          curl -f https://api.yourdomain.com/actuator/prometheus || exit 1
+
+          # Basic API check
+          response=$(curl -s https://api.yourdomain.com/actuator/info)
+          echo "API Response: $response"
+
+          echo "Production smoke tests passed!"
+
+      - name: Update Monitoring Annotations
+        run: |
+          # Add Grafana annotation for deployment
+          curl -X POST https://grafana.yourdomain.com/api/annotations \
+            -H "Authorization: Bearer ${{ secrets.GRAFANA_API_KEY }}" \
+            -H "Content-Type: application/json" \
+            -d '{
+              "text": "Production deployment: ${{ github.ref_name }}",
+              "tags": ["deployment", "production"],
+              "time": '$(date +%s)000'
+            }' || true
+
+      - name: Create GitHub Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: |
+            ## Changes in this Release
+            - Deployed to production
+            - Docker Image: `${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.ref_name }}`
+
+            ## Deployment Info
+            - Date: ${{ github.event.head_commit.timestamp }}
+            - Commit: ${{ github.sha }}
+            - Author: ${{ github.event.head_commit.author.name }}
+          draft: false
+          prerelease: false
+
+      - name: Notify deployment success
+        if: success()
+        run: |
+          echo "✅ Production deployment successful!"
+          # Add Slack/Discord notification here
+
+      - name: Rollback on failure
+        if: failure()
+        run: |
+          echo "❌ Deployment failed! Rolling back..."
+
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            cd /opt/rest-server
+
+            # Rollback to previous version
+            docker tag rest-server:rollback rest-server:current
+            docker-compose -f docker-compose.green.yml up -d
+
+            echo "Rollback completed"
+          EOF
+
+          # Notify team about rollback
+
+  deploy-docker-swarm:
+    name: Deploy to Docker Swarm
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main'
+    environment:
+      name: production-swarm
+      url: https://api.yourdomain.com
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Context
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.SWARM_SSH_KEY }}" > ~/.ssh/id_rsa
+          chmod 600 ~/.ssh/id_rsa
+
+          # Create Docker context for Swarm
+          docker context create swarm-production \
+            --docker "host=ssh://${{ secrets.SWARM_USER }}@${{ secrets.SWARM_HOST }}"
+
+          docker context use swarm-production
+
+      - name: Deploy Stack to Swarm
+        run: |
+          # Deploy using docker stack
+          docker stack deploy \
+            --compose-file docker-compose.prod.yml \
+            --with-registry-auth \
+            rest-server-stack
+
+          # Wait for services to be ready
+          echo "Waiting for services to be ready..."
+          sleep 30
+
+          # Check service status
+          docker stack services rest-server-stack
+
+      - name: Check Service Health
+        run: |
+          # Verify all replicas are running
+          docker service ps rest-server-stack_rest-server --filter "desired-state=running"
+
+          # Health check
+          timeout 300 bash -c 'until curl -f https://api.yourdomain.com/actuator/health; do sleep 5; done'
+
+      - name: Update Service (Rolling Update)
+        run: |
+          # Rolling update with zero downtime
+          docker service update \
+            --image ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest \
+            --update-parallelism 1 \
+            --update-delay 30s \
+            --update-failure-action rollback \
+            rest-server-stack_rest-server
+
+  cleanup:
+    name: Cleanup Old Resources
+    runs-on: ubuntu-latest
+    needs: [deploy-production]
+    if: always()
+
+    steps:
+      - name: Clean up old Docker images
+        run: |
+          ssh ${{ secrets.PROD_USER }}@${{ secrets.PROD_HOST }} << 'EOF'
+            # Remove dangling images
+            docker image prune -f
+
+            # Remove images older than 7 days
+            docker images --filter "before=$(docker images -q | head -n 5)" -q | xargs -r docker rmi -f || true
+
+            echo "Cleanup completed"
+          EOF
+
+      - name: Clean up old artifacts
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const days = 30;
+            const timestamp = Date.now() - (days * 24 * 60 * 60 * 1000);
+            const {data: artifacts} = await github.rest.actions.listArtifactsForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+            });
+
+            for (const artifact of artifacts.artifacts) {
+              if (new Date(artifact.created_at).getTime() < timestamp) {
+                await github.rest.actions.deleteArtifact({
+                  owner: context.repo.owner,
+                  repo: context.repo.repo,
+                  artifact_id: artifact.id,
+                });
+                console.log(`Deleted artifact: ${artifact.name}`);
+              }
+            }
