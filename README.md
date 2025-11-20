@@ -13,6 +13,10 @@ Clean Architecture, Domain-Driven Design (DDD), Test-Driven Development (TDD) �
 [![Java](https://img.shields.io/badge/Java-21-orange.svg)](https://openjdk.org/projects/jdk/21/)
 [![License](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 
+[![CI](https://github.com/YouSangSon/rest_server/workflows/CI%20-%20Build%20and%20Test/badge.svg)](https://github.com/YouSangSon/rest_server/actions/workflows/ci.yml)
+[![CodeQL](https://github.com/YouSangSon/rest_server/workflows/CodeQL%20Security%20Analysis/badge.svg)](https://github.com/YouSangSon/rest_server/actions/workflows/codeql.yml)
+[![Docker](https://img.shields.io/badge/Docker-Hub-blue.svg)](https://hub.docker.com/r/yousangson/rest-server)
+
 ## 🌟 주요 기능
 
 ### 🤖 자동 투자 봇 시스템
@@ -91,6 +95,39 @@ curl http://localhost:8080/actuator/health
 ### OAuth2 설정
 
 소셜 로그인을 사용하려면 [README_OAUTH2_SETUP.md](README_OAUTH2_SETUP.md) 참조
+
+## 🔄 CI/CD
+
+### GitHub Actions
+
+프로젝트는 완전 자동화된 CI/CD 파이프라인을 제공합니다:
+
+**Workflows:**
+- ✅ **CI**: 자동 빌드, 테스트, Docker 이미지 생성
+- ✅ **CD**: 스테이징/프로덕션 자동 배포
+- ✅ **PR Validation**: 코드 리뷰, 품질 검사, 보안 스캔
+- ✅ **CodeQL**: 주간 보안 취약점 분석
+- ✅ **Release**: 자동 릴리즈 노트 생성 및 배포
+
+**Features:**
+- 🔄 자동 빌드 & 테스트 (PostgreSQL, MongoDB, Redis 포함)
+- 🐳 멀티 플랫폼 Docker 이미지 빌드 (amd64, arm64)
+- 🔒 보안 스캔 (Trivy, OWASP, CodeQL)
+- 📊 코드 품질 분석 (Detekt, SonarCloud)
+- 🚀 Blue-Green 무중단 배포
+- 📦 자동 의존성 업데이트 (Dependabot)
+
+**배포 전략:**
+```bash
+# 개발 → 스테이징 (자동)
+git push origin develop
+
+# 프로덕션 릴리즈 (태그)
+git tag -a v1.0.0 -m "Release 1.0.0"
+git push origin v1.0.0
+```
+
+자세한 내용: [CI/CD 가이드](docs/DEPLOYMENT_GUIDE.md#-cicd-pipeline-github-actions)
 
 ## 📚 주요 API
 

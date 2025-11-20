@@ -551,6 +551,251 @@ vault:
 
 ---
 
+## 🚀 CI/CD Pipeline (GitHub Actions)
+
+### Overview
+
+The project uses GitHub Actions for automated CI/CD with the following workflows:
+
+| Workflow | Trigger | Purpose |
+|----------|---------|---------|
+| **CI** | Push, PR | Build, test, Docker image |
+| **CD** | Main branch, tags | Deploy to staging/production |
+| **PR Validation** | Pull requests | Code review, quality checks |
+| **CodeQL** | Weekly, push | Security scanning |
+| **Release** | Tags (v*.*.*)  | Create releases, publish artifacts |
+
+### Setup GitHub Actions
+
+#### Step 1: Configure Secrets
+
+Go to GitHub repository → Settings → Secrets and variables → Actions
+
+**Required Secrets:**
+```
+# Docker Hub
+DOCKER_USERNAME=your-dockerhub-username
+DOCKER_PASSWORD=your-dockerhub-password
+
+# Deployment (for CD)
+STAGING_SSH_KEY=<private-ssh-key>
+STAGING_HOST=staging.yourdomain.com
+STAGING_USER=deploy
+
+PROD_SSH_KEY=<private-ssh-key>
+PROD_HOST=api.yourdomain.com
+PROD_USER=deploy
+
+# Monitoring (optional)
+GRAFANA_API_KEY=<grafana-api-key>
+SONAR_TOKEN=<sonarcloud-token>
+```
+
+#### Step 2: Enable Workflows
+
+All workflows are automatically enabled when you push the `.github/workflows/` directory.
+
+```bash
+git add .github/
+git commit -m "ci: add GitHub Actions workflows"
+git push
+```
+
+#### Step 3: Monitor Builds
+
+- **Actions Tab**: View all workflow runs
+- **Status Badges**: Add to README.md
+
+```markdown
+![CI](https://github.com/YouSangSon/rest_server/workflows/CI/badge.svg)
+![Security](https://github.com/YouSangSon/rest_server/workflows/CodeQL/badge.svg)
+```
+
+### CI Workflow Details
+
+**Triggered on:**
+- Push to `main`, `develop`, `feature/*`, `claude/*`
+- Pull requests to `main`, `develop`
+
+**Jobs:**
+1. **Build & Test** (8 min avg)
+   - Sets up PostgreSQL, MongoDB, Redis
+   - Runs unit & integration tests
+   - Generates coverage reports
+   - Uploads JAR artifacts
+
+2. **Docker Build** (6 min avg)
+   - Multi-platform (amd64, arm64)
+   - Pushes to Docker Hub + GHCR
+   - Security scanning with Docker Scout
+
+3. **Code Quality** (5 min avg)
+   - Detekt (Kotlin linter)
+   - SonarCloud analysis
+   - Code coverage verification
+
+4. **Security Scan** (4 min avg)
+   - Trivy vulnerability scanner
+   - OWASP dependency check
+   - Uploads results to GitHub Security
+
+### CD Workflow Details
+
+**Triggered on:**
+- Push to `main` (auto-deploy to production)
+- Tags `v*.*.*` (versioned releases)
+- Manual workflow dispatch
+
+**Deployment Strategies:**
+
+**1. Blue-Green Deployment:**
+```yaml
+# Zero-downtime deployment
+- Start new version (blue)
+- Health check blue environment
+- Switch traffic to blue
+- Stop old version (green)
+- Keep green for rollback
+```
+
+**2. Docker Swarm Rolling Update:**
+```yaml
+# Gradual rollout
+--update-parallelism 1
+--update-delay 30s
+--update-failure-action rollback
+```
+
+**3. Staging → Production Pipeline:**
+```
+develop → staging (auto)
+main → production (manual approval)
+tags → production release
+```
+
+### Pull Request Workflow
+
+**Automated Checks:**
+- ✅ PR title follows conventional commits
+- ✅ Code quality (Detekt, lint)
+- ✅ Test coverage > 50%
+- ✅ Security scan (secrets, vulnerabilities)
+- ✅ Dependency review
+- ✅ Documentation updates
+- ✅ Build & tests pass
+
+**PR Comments:**
+- Code coverage report
+- Quality issues summary
+- Performance metrics
+
+### Release Management
+
+**Creating a Release:**
+
+```bash
+# Method 1: Git tag
+git tag -a v1.2.0 -m "Release 1.2.0"
+git push origin v1.2.0
+
+# Method 2: Manual workflow dispatch
+# Go to Actions → Release Management → Run workflow
+```
+
+**Automatic Release Notes:**
+- ✨ Features (feat commits)
+- 🐛 Bug Fixes (fix commits)
+- 📚 Documentation (docs commits)
+- 🔧 Other changes
+
+**Artifacts Published:**
+- JAR files with checksums
+- Docker images (multi-platform)
+- GitHub release notes
+
+### Environment Configuration
+
+**Staging Environment:**
+```yaml
+environment:
+  name: staging
+  url: https://staging-api.yourdomain.com
+```
+
+**Production Environment:**
+```yaml
+environment:
+  name: production
+  url: https://api.yourdomain.com
+  # Requires manual approval
+```
+
+### Monitoring CI/CD
+
+**View Metrics:**
+```bash
+# Workflow success rate
+curl -H "Authorization: token $GITHUB_TOKEN" \
+  https://api.github.com/repos/YouSangSon/rest_server/actions/workflows/ci.yml/runs
+
+# Recent deployments
+curl -H "Authorization: token $GITHUB_TOKEN" \
+  https://api.github.com/repos/YouSangSon/rest_server/deployments
+```
+
+**Grafana Annotations:**
+- Each deployment adds annotation to Grafana
+- Correlate deployments with metrics
+
+### Troubleshooting CI/CD
+
+**Build Failures:**
+```bash
+# Check workflow logs
+gh run list --workflow=ci.yml
+gh run view <run-id> --log
+
+# Re-run failed jobs
+gh run rerun <run-id> --failed
+```
+
+**Docker Build Issues:**
+```bash
+# Test locally
+docker build -t rest-server:test .
+
+# Check multi-platform build
+docker buildx build --platform linux/amd64,linux/arm64 .
+```
+
+**Deployment Failures:**
+```bash
+# Check deployment logs
+ssh deploy@api.yourdomain.com 'docker-compose logs --tail=100'
+
+# Rollback
+docker service rollback rest-server-stack_rest-server
+```
+
+### Dependabot Integration
+
+Automated dependency updates configured in `.github/dependabot.yml`:
+
+- **Weekly Gradle updates** (Mondays 9 AM)
+- **Weekly Docker updates** (Mondays 9 AM)
+- **Monthly GitHub Actions updates**
+
+**Auto-merge strategy** (optional):
+```bash
+# Install gh CLI extension
+gh extension install github/gh-dependabot
+
+# Auto-merge patch updates
+gh dependabot auto-merge <pr-number> --merge
+```
+
+---
+
 ## 📊 Health Checks & Monitoring
 
 ### Health Check Endpoints

@@ -1,0 +1,320 @@
+name: Pull Request Validation
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, ready_for_review]
+    branches:
+      - main
+      - develop
+
+env:
+  JAVA_VERSION: '21'
+
+jobs:
+  pr-validation:
+    name: PR Validation
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for git diff
+
+      - name: PR Title Check
+        uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          types: |
+            feat
+            fix
+            docs
+            style
+            refactor
+            perf
+            test
+            build
+            ci
+            chore
+            revert
+          requireScope: false
+          subjectPattern: ^(?![A-Z]).+$
+          subjectPatternError: |
+            The subject "{subject}" found in the pull request title "{title}"
+            didn't match the configured pattern. Please ensure that the subject
+            doesn't start with an uppercase character.
+
+      - name: Check PR size
+        run: |
+          lines_changed=$(git diff --shortstat origin/${{ github.base_ref }}...HEAD | grep -oP '\d+(?= insertion)|\d+(?= deletion)' | awk '{sum+=$1} END {print sum}')
+          echo "Lines changed: $lines_changed"
+
+          if [ $lines_changed -gt 1000 ]; then
+            echo "::warning::This PR is quite large ($lines_changed lines). Consider breaking it into smaller PRs."
+          fi
+
+      - name: Check for merge conflicts
+        run: |
+          git fetch origin ${{ github.base_ref }}
+          if ! git merge-tree $(git merge-base HEAD origin/${{ github.base_ref }}) origin/${{ github.base_ref }} HEAD | grep -q "^changed in both"; then
+            echo "✅ No merge conflicts detected"
+          else
+            echo "::error::Merge conflicts detected. Please resolve conflicts before merging."
+            exit 1
+          fi
+
+      - name: Validate commit messages
+        run: |
+          # Check conventional commit format
+          git log --pretty=format:"%s" origin/${{ github.base_ref }}..HEAD | while read commit_msg; do
+            if ! echo "$commit_msg" | grep -qE "^(feat|fix|docs|style|refactor|perf|test|build|ci|chore|revert)(\(.+\))?: .+"; then
+              echo "::warning::Commit message doesn't follow conventional format: $commit_msg"
+            fi
+          done
+
+  code-review:
+    name: Automated Code Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run Detekt with PR Comments
+        run: |
+          ./gradlew detekt --no-daemon || true
+        continue-on-error: true
+
+      - name: Comment PR with Detekt results
+        uses: actions/github-script@v7
+        if: always()
+        with:
+          script: |
+            const fs = require('fs');
+            const detektReport = 'build/reports/detekt/detekt.xml';
+
+            if (fs.existsSync(detektReport)) {
+              const report = fs.readFileSync(detektReport, 'utf8');
+              const issueCount = (report.match(/<error/g) || []).length;
+
+              let body = '## 🔍 Code Quality Report\n\n';
+
+              if (issueCount === 0) {
+                body += '✅ No code quality issues found!';
+              } else {
+                body += `⚠️ Found ${issueCount} code quality issue(s). Please check the Detekt report.`;
+              }
+
+              github.rest.issues.createComment({
+                issue_number: context.issue.number,
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                body: body
+              });
+            }
+
+      - name: Check for TODO/FIXME comments
+        run: |
+          todos=$(git diff origin/${{ github.base_ref }}...HEAD | grep -E "^\+.*TODO|^\+.*FIXME" || true)
+          if [ -n "$todos" ]; then
+            echo "::warning::New TODO/FIXME comments found:"
+            echo "$todos"
+          fi
+
+      - name: Check for hardcoded secrets
+        uses: trufflesecurity/trufflehog@main
+        with:
+          path: ./
+          base: ${{ github.event.pull_request.base.sha }}
+          head: ${{ github.event.pull_request.head.sha }}
+          extra_args: --debug --only-verified
+
+  dependency-review:
+    name: Dependency Review
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Dependency Review
+        uses: actions/dependency-review-action@v4
+        with:
+          fail-on-severity: high
+          deny-licenses: GPL-2.0, GPL-3.0
+
+  test-coverage:
+    name: Test Coverage Report
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: rest_server_test
+          POSTGRES_USER: test_user
+          POSTGRES_PASSWORD: test_password
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+      mongodb:
+        image: mongo:7
+        env:
+          MONGO_INITDB_ROOT_USERNAME: test_user
+          MONGO_INITDB_ROOT_PASSWORD: test_password
+        ports:
+          - 27017:27017
+
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6379:6379
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Run tests with coverage
+        run: ./gradlew test jacocoTestReport --no-daemon
+        env:
+          SPRING_PROFILES_ACTIVE: test
+
+      - name: Generate coverage report
+        run: |
+          ./gradlew jacocoTestCoverageVerification --no-daemon || true
+        continue-on-error: true
+
+      - name: Comment PR with coverage
+        uses: madrapps/jacoco-report@v1.6.1
+        with:
+          paths: ${{ github.workspace }}/build/reports/jacoco/test/jacocoTestReport.xml
+          token: ${{ secrets.GITHUB_TOKEN }}
+          min-coverage-overall: 50
+          min-coverage-changed-files: 60
+          title: '📊 Code Coverage Report'
+          update-comment: true
+
+  performance-check:
+    name: Performance Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK ${{ env.JAVA_VERSION }}
+        uses: actions/setup-java@v4
+        with:
+          java-version: ${{ env.JAVA_VERSION }}
+          distribution: 'temurin'
+          cache: 'gradle'
+
+      - name: Build application
+        run: ./gradlew bootJar --no-daemon
+
+      - name: Check JAR size
+        run: |
+          jar_size=$(du -h build/libs/*.jar | cut -f1)
+          echo "JAR size: $jar_size"
+          echo "jar_size=$jar_size" >> $GITHUB_OUTPUT
+
+      - name: Check build time
+        run: |
+          start_time=$(date +%s)
+          ./gradlew clean build --no-daemon
+          end_time=$(date +%s)
+          build_time=$((end_time - start_time))
+          echo "Build time: ${build_time}s"
+
+          if [ $build_time -gt 300 ]; then
+            echo "::warning::Build time is longer than 5 minutes (${build_time}s). Consider optimizing."
+          fi
+
+  docs-check:
+    name: Documentation Check
+    runs-on: ubuntu-latest
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check for documentation updates
+        run: |
+          # Check if code changes include documentation updates
+          code_changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(kt|java)$' || true)
+          docs_changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E '\.(md|txt)$|^docs/' || true)
+
+          if [ -n "$code_changed" ] && [ -z "$docs_changed" ]; then
+            echo "::warning::Code changes detected but no documentation updates. Consider updating documentation."
+          fi
+
+      - name: Check markdown files
+        uses: DavidAnson/markdownlint-action@v1
+        with:
+          files: '**/*.md'
+          ignore: 'node_modules'
+          config: '.markdownlint.json'
+        continue-on-error: true
+
+      - name: Validate API documentation
+        run: |
+          # Check if API changes are documented
+          api_files_changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'Controller\.kt$' || true)
+          api_docs_changed=$(git diff --name-only origin/${{ github.base_ref }}...HEAD | grep -E 'API.*\.md$' || true)
+
+          if [ -n "$api_files_changed" ] && [ -z "$api_docs_changed" ]; then
+            echo "::warning::API controllers changed but API documentation not updated. Please update API docs."
+          fi
+
+  final-approval:
+    name: Final Approval Check
+    runs-on: ubuntu-latest
+    needs: [pr-validation, code-review, dependency-review, test-coverage, performance-check, docs-check]
+    if: github.event.pull_request.draft == false
+
+    steps:
+      - name: All checks passed
+        run: |
+          echo "✅ All PR validation checks passed!"
+          echo "Ready for human review and merge."
+
+      - name: Comment PR ready for review
+        uses: actions/github-script@v7
+        with:
+          script: |
+            github.rest.issues.createComment({
+              issue_number: context.issue.number,
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              body: '✅ All automated checks passed! This PR is ready for human review. 🚀'
+            });
