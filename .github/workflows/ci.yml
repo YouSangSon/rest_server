@@ -124,7 +124,7 @@ jobs:
 
       - name: Upload Test Results
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: test-results
           path: |
@@ -134,7 +134,7 @@ jobs:
 
       - name: Upload Coverage Reports
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: coverage-reports
           path: build/reports/jacoco/
@@ -147,7 +147,7 @@ jobs:
           SPRING_PROFILES_ACTIVE: prod
 
       - name: Upload JAR Artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: rest-server-jar
           path: build/libs/*.jar
@@ -252,7 +252,7 @@ jobs:
 
       - name: Upload Detekt Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: detekt-report
           path: build/reports/detekt/
@@ -303,7 +303,7 @@ jobs:
 
       - name: Upload Dependency Check Report
         if: always()
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: dependency-check-report
           path: build/reports/dependency-check-report.html
