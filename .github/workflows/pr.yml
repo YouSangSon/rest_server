@@ -98,7 +98,7 @@ jobs:
         continue-on-error: true
 
       - name: Comment PR with Detekt results
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         if: always()
         with:
           script: |
@@ -309,7 +309,7 @@ jobs:
           echo "Ready for human review and merge."
 
       - name: Comment PR ready for review
-        uses: actions/github-script@v7
+        uses: actions/github-script@v8
         with:
           script: |
             github.rest.issues.createComment({
