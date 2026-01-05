@@ -74,7 +74,7 @@ dependencies {
 	implementation("io.micrometer:micrometer-registry-prometheus")
 
 	// Swagger/OpenAPI
-	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:2.3.0")
+	implementation("org.springdoc:springdoc-openapi-starter-webmvc-ui:3.0.1")
 
 	// Rate Limiting (Bucket4j)
 	implementation("com.bucket4j:bucket4j-core:8.10.1")
