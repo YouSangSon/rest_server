@@ -2,7 +2,7 @@
 # Optimized for Java 21 Virtual Threads and production workloads
 
 # Stage 1: Build
-FROM gradle:8.5-jdk21-alpine AS builder
+FROM gradle:9.0-jdk21-alpine AS builder
 WORKDIR /app
 
 # Copy gradle files first for better caching
