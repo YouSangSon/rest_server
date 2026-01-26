@@ -55,8 +55,8 @@ dependencies {
 	runtimeOnly("org.postgresql:postgresql")
 
 	// JetBrains Exposed (for manual SQL / DSL)
-	implementation("org.jetbrains.exposed:exposed-core:0.56.0")
-	implementation("org.jetbrains.exposed:exposed-jdbc:0.56.0")
+	implementation("org.jetbrains.exposed:exposed-core:1.0.0")
+	implementation("org.jetbrains.exposed:exposed-jdbc:1.0.0")
 
 	// Redis
 	implementation("org.springframework.boot:spring-boot-starter-data-redis")
