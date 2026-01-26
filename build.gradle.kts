@@ -88,7 +88,7 @@ dependencies {
 	testImplementation("org.springframework.boot:spring-boot-starter-test")
 	testImplementation("org.springframework.security:spring-security-test")
 	testImplementation("org.jetbrains.kotlin:kotlin-test-junit5")
-	testImplementation("org.mockito.kotlin:mockito-kotlin:5.2.1")
+	testImplementation("org.mockito.kotlin:mockito-kotlin:6.2.2")
 	testImplementation("com.h2database:h2")
 	testRuntimeOnly("org.junit.platform:junit-platform-launcher")
 }
